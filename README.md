@@ -2,9 +2,9 @@
 
 **Live:** https://m67uzair.github.io/ai-pivot-tracker
 
-An interactive, single-file progress tracker for my career pivot: **Dart/Flutter → Remote AI Engineer** — ship 3 deployed AI projects in 25 weeks (Karachi → remote).
+An interactive progress tracker for my career pivot: **Dart/Flutter → Remote AI Engineer** — ship 3 deployed AI projects in 25 weeks (Karachi → remote).
 
-It's one self-contained `index.html`: no build step, no dependencies, no server. Open it in a browser and your progress saves automatically.
+No build step and no framework — static HTML/CSS/JS hosted on GitHub Pages. Progress saves locally and, when you sign in, syncs to the cloud across devices.
 
 ## Features
 
@@ -15,11 +15,12 @@ It's one self-contained `index.html`: no build step, no dependencies, no server.
 - **Filters** (all / open only / done only) and expand/collapse-all.
 - **Per-task notes** you can jot inline.
 - **Artifacts sidebar** — a collapsible left panel listing the practice projects I've shipped, each linking to its repo and its mapped plan task with a live done-state. See [ai-pivot-practice](https://github.com/m67uzair/ai-pivot-practice).
+- **Cloud sync** — sign in with a 6-digit email code to sync progress across devices.
 - **Export / Import / Reset** your progress as JSON.
 
 ## Usage
 
-Open `index.html` in any modern browser — that's it.
+Open the [live site](https://m67uzair.github.io/ai-pivot-tracker), or run it locally:
 
 ```bash
 open index.html
@@ -27,8 +28,38 @@ open index.html
 
 ## How progress is stored
 
-State persists to the browser's `localStorage` under the key `pivot-tracker-state-v1`. It's local to the browser you open the file in. Use **Export** to back it up or move it to another machine, and **Import** to restore it.
+Progress always saves to the browser's `localStorage` (key `pivot-tracker-state-v1`) — so it works fully offline.
+
+Hit **☁ Sync** and sign in with your email (you get a one-time 6-digit code, no password) to also sync to the cloud. After that, edits push automatically and other devices pull the latest on load and on tab focus. Sync uses last-write-wins by timestamp, which is fine for a single user across devices.
+
+You can still **Export**/**Import** the raw JSON at any time.
 
 ## Tech
 
-Plain HTML, CSS, and vanilla JavaScript — no frameworks, no build tooling.
+- Plain HTML, CSS, and vanilla JavaScript — no frameworks, no build tooling.
+- [Supabase](https://supabase.com) for auth (email OTP) and a single `tracker_state` table, locked down with row-level security so each account only ever reads/writes its own row.
+
+## Project structure
+
+| File         | Purpose                                  |
+|--------------|------------------------------------------|
+| `index.html` | Markup and styles.                       |
+| `app.js`     | All application logic (plan data, rendering, storage, cloud sync). |
+
+### Supabase setup (for reference)
+
+The table this expects:
+
+```sql
+create table if not exists public.tracker_state (
+  user_id    uuid primary key references auth.users(id) on delete cascade,
+  data       jsonb  not null,
+  client_ts  bigint not null default 0,
+  updated_at timestamptz not null default now()
+);
+alter table public.tracker_state enable row level security;
+create policy "own row" on public.tracker_state
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+```
+
+The Supabase project URL and publishable key live in `app.js`. The publishable key is safe to ship in client code — row-level security is what protects the data.
