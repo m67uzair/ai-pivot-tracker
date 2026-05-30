@@ -883,9 +883,127 @@
     .tl-row { grid-template-columns: 150px repeat(25, 26px); }
     .tl-cell, .tl-week-head { height: 26px; line-height: 26px; }
   }
+
+  /* ===== ARTIFACTS SIDEBAR ===== */
+  .artifacts-tab {
+    position: fixed; left: 0; top: 50%; transform: translateY(-50%);
+    z-index: 90;
+    background: var(--bg-card); color: var(--text-dim);
+    border: 1px solid var(--border); border-left: none;
+    border-radius: 0 10px 10px 0;
+    padding: 16px 8px; cursor: pointer;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 2px;
+    writing-mode: vertical-rl; text-orientation: mixed;
+    display: flex; align-items: center; gap: 9px;
+    box-shadow: var(--shadow);
+    transition: background .15s, color .15s;
+  }
+  .artifacts-tab:hover { background: var(--bg-soft); color: var(--accent); }
+  .artifacts-tab .dot {
+    writing-mode: horizontal-tb;
+    background: var(--accent); color: var(--bg);
+    font-weight: 700; border-radius: 999px;
+    min-width: 17px; height: 17px; line-height: 17px; text-align: center;
+    font-size: 10px;
+  }
+  .artifacts-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 88; opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+  }
+  .artifacts-backdrop.open { opacity: 1; pointer-events: auto; }
+  .artifacts-panel {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 350px; max-width: 86vw;
+    background: var(--bg-elev);
+    border-right: 1px solid var(--border);
+    z-index: 90;
+    transform: translateX(-100%);
+    transition: transform .24s cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: column;
+    box-shadow: var(--shadow);
+  }
+  .artifacts-panel.open { transform: translateX(0); }
+  .artifacts-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 18px 18px 14px; border-bottom: 1px solid var(--border);
+  }
+  .artifacts-head h2 {
+    margin: 0; font-family: var(--mono); font-size: 13px;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--text);
+  }
+  .artifacts-head .sub { font-size: 11px; color: var(--text-faint); font-family: var(--mono); margin-top: 3px; }
+  .artifacts-close {
+    background: none; border: none; color: var(--text-faint);
+    font-size: 24px; line-height: 1; padding: 0 6px; border-radius: 6px;
+  }
+  .artifacts-close:hover { color: var(--text); background: var(--bg-soft); }
+  .artifacts-list { padding: 14px; overflow-y: auto; flex: 1; }
+  .artifact-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 12px;
+  }
+  .artifact-card h3 {
+    margin: 0 0 6px; font-size: 14px; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .artifact-card p { margin: 0 0 10px; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+  .artifact-stack { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .artifact-stack span {
+    font-family: var(--mono); font-size: 10px; color: var(--text-faint);
+    background: var(--bg-soft); border: 1px solid var(--border-soft);
+    padding: 2px 7px; border-radius: 999px;
+  }
+  .artifact-tasks { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .artifact-task {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-size: 11.5px; color: var(--text-dim); text-align: left;
+    background: none; border: none; padding: 5px 6px; border-radius: 6px; width: 100%;
+  }
+  .artifact-task:hover { background: var(--bg-soft); color: var(--text); }
+  .artifact-task .check {
+    width: 16px; height: 16px; border-radius: 5px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; border: 1px solid var(--border); color: var(--text-faint);
+  }
+  .artifact-task.done .check { background: var(--green); border-color: var(--green); color: var(--bg); }
+  .artifact-repo {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+    text-decoration: none; border: 1px solid var(--accent-soft);
+    background: var(--accent-soft); padding: 6px 10px; border-radius: 8px;
+    transition: background .15s, color .15s;
+  }
+  .artifact-repo:hover { background: var(--accent); color: var(--bg); }
+  .artifacts-foot { padding: 12px 14px; border-top: 1px solid var(--border); }
+  .artifacts-foot a {
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim); text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px; word-break: break-all;
+  }
+  .artifacts-foot a:hover { color: var(--accent); }
 </style>
 </head>
 <body>
+
+<!-- ===== ARTIFACTS SIDEBAR ===== -->
+<button class="artifacts-tab" id="artifactsTab" aria-label="Open artifacts panel">
+  <span class="dot" id="artifactsCount">0</span>
+  ARTIFACTS
+</button>
+<div class="artifacts-backdrop" id="artifactsBackdrop"></div>
+<aside class="artifacts-panel" id="artifactsPanel" aria-hidden="true">
+  <div class="artifacts-head">
+    <div>
+      <h2>Artifacts</h2>
+      <div class="sub">shipped practice projects</div>
+    </div>
+    <button class="artifacts-close" id="artifactsClose" aria-label="Close panel">&times;</button>
+  </div>
+  <div class="artifacts-list" id="artifactsList"></div>
+  <div class="artifacts-foot">
+    <a href="https://github.com/m67uzair/ai-pivot-practice" target="_blank" rel="noopener">↗ github.com/m67uzair/ai-pivot-practice</a>
+  </div>
+</aside>
 
 <!-- ===== TOP STICKY BAR ===== -->
 <div class="topbar">
@@ -2366,9 +2484,99 @@ function fullRender() {
   applyFilter();
 }
 
+// ==============================================================
+// =============== ARTIFACTS SIDEBAR ============================
+// ==============================================================
+const ARTIFACTS_REPO = 'https://github.com/m67uzair/ai-pivot-practice';
+const ARTIFACTS = [
+  {
+    name: 'Pokémon CLI', emoji: '🔴',
+    desc: 'Fetches the PokéAPI, parses the response into typed Pydantic models, and prints it.',
+    repo: ARTIFACTS_REPO + '/tree/main/pokemon-cli',
+    stack: ['Python', 'httpx', 'Pydantic'],
+    taskIds: ['p0-w0-t8']
+  },
+  {
+    name: 'Multi-Provider Chat Completion', emoji: '💬',
+    desc: 'Sends one prompt to Gemini, Groq (Llama 3.3) and OpenRouter, then prints the responses side-by-side to compare.',
+    repo: ARTIFACTS_REPO + '/tree/main/chat-completion-script',
+    stack: ['Python', 'google-genai', 'groq', 'openai'],
+    taskIds: ['p1-w1-t3']
+  }
+];
+
+function artifactStripHtml(s) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = s || '';
+  return (tmp.textContent || '').replace(/\s+/g, ' ').trim();
+}
+function artifactTaskInfo(id) {
+  for (const phase of PLAN) {
+    for (const wb of phase.weekBlocks) {
+      const t = wb.tasks.find(x => x.id === id);
+      if (t) return { phaseId: phase.id, text: artifactStripHtml(t.text), done: !!state.tasks[id] };
+    }
+    const d = phase.project.deliverables.find(x => x.id === id);
+    if (d) return { phaseId: phase.id, text: artifactStripHtml(d.text), done: !!state.tasks[id] };
+  }
+  return null;
+}
+
+function renderArtifacts() {
+  const list = document.getElementById('artifactsList');
+  if (!list) return;
+  document.getElementById('artifactsCount').textContent = ARTIFACTS.length;
+  list.innerHTML = '';
+  ARTIFACTS.forEach(a => {
+    const card = el('div', { class: 'artifact-card' });
+    card.innerHTML =
+      `<h3><span>${a.emoji}</span>${a.name}</h3>` +
+      `<p>${a.desc}</p>` +
+      `<div class="artifact-stack">${a.stack.map(s => `<span>${s}</span>`).join('')}</div>` +
+      `<div class="artifact-tasks"></div>`;
+    const tasksWrap = card.querySelector('.artifact-tasks');
+    a.taskIds.forEach(id => {
+      const info = artifactTaskInfo(id);
+      if (!info) return;
+      const txt = info.text.length > 54 ? info.text.slice(0, 53) + '…' : info.text;
+      const btn = el('button', {
+        class: 'artifact-task' + (info.done ? ' done' : ''),
+        title: 'Jump to: ' + info.text,
+        onclick: () => { closeArtifacts(); scrollToSection(info.phaseId, 'phase'); }
+      });
+      btn.innerHTML = `<span class="check">${info.done ? '✓' : ''}</span><span>${txt}</span>`;
+      tasksWrap.appendChild(btn);
+    });
+    const link = el('a', { class: 'artifact-repo', href: a.repo, target: '_blank', rel: 'noopener' });
+    link.textContent = '↗ view code';
+    card.appendChild(link);
+    list.appendChild(card);
+  });
+}
+
+function openArtifacts() {
+  renderArtifacts();
+  document.getElementById('artifactsPanel').classList.add('open');
+  document.getElementById('artifactsPanel').setAttribute('aria-hidden', 'false');
+  document.getElementById('artifactsBackdrop').classList.add('open');
+}
+function closeArtifacts() {
+  document.getElementById('artifactsPanel').classList.remove('open');
+  document.getElementById('artifactsPanel').setAttribute('aria-hidden', 'true');
+  document.getElementById('artifactsBackdrop').classList.remove('open');
+}
+function setupArtifacts() {
+  renderArtifacts();
+  document.getElementById('artifactsTab').addEventListener('click', openArtifacts);
+  document.getElementById('artifactsClose').addEventListener('click', closeArtifacts);
+  document.getElementById('artifactsBackdrop').addEventListener('click', closeArtifacts);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArtifacts(); });
+}
+
 async function boot() {
   await loadState();
   fullRender();
+  setupArtifacts();
 
   document.querySelectorAll('.filter-btn[data-filter]').forEach(b => {
     b.addEventListener('click', () => {
