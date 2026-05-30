@@ -1,5 +1,7 @@
 # ai-pivot-tracker
 
+**Live:** https://m67uzair.github.io/ai-pivot-tracker
+
 An interactive, single-file progress tracker for my career pivot: **Dart/Flutter → Remote AI Engineer** — ship 3 deployed AI projects in 25 weeks (Karachi → remote).
 
 It's one self-contained `index.html`: no build step, no dependencies, no server. Open it in a browser and your progress saves automatically.
