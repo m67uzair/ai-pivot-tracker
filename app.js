@@ -121,7 +121,7 @@ const PLAN = [
     ]
   },
   resources: [
-    { name: 'Anthropic Interactive Prompt Engineering Tutorial', url: 'https://github.com/anthropics/prompt-eng-interactive-tutorial', icon: '🎓', tags: ['free', 'core'], note: 'Canonical starting point. 9 chapters.' },
+    { name: 'Anthropic Interactive Prompt Engineering Tutorial', url: 'https://github.com/anthropics/prompt-eng-interactive-tutorial', icon: '🎓', tags: ['free', 'core'], note: 'Canonical starting point. 9 chapters. (examples use Claude 3 Haiku; techniques still current).' },
     { name: 'Anthropic Courses (GitHub)', url: 'https://github.com/anthropics/courses', icon: '📚', tags: ['free', 'core'] },
     { name: 'DeepLearning.AI — ChatGPT Prompt Eng for Devs', url: 'https://www.deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers/', icon: '🎓', tags: ['free', 'core'] },
     { name: 'OpenAI Cookbook', url: 'https://cookbook.openai.com/', icon: '📖', tags: ['free', 'core'] },
@@ -154,7 +154,7 @@ const PLAN = [
       tasks: [
         { id: 'p2-w5-t1', text: 'Read <a href="https://eugeneyan.com/writing/llm-patterns/" target="_blank" rel="noopener">Eugene Yan — Patterns for LLM Systems</a> (RAG section)', hours: 2 },
         { id: 'p2-w5-t2', text: 'Document parsing — try <a href="https://unstructured.io/" target="_blank" rel="noopener">unstructured.io</a>, <a href="https://github.com/VikParuchuri/marker" target="_blank" rel="noopener">Marker</a>, <a href="https://www.llamaindex.ai/llamaparse" target="_blank" rel="noopener">LlamaParse</a> on the same messy PDF — compare output', hours: 3 },
-        { id: 'p2-w5-t3', text: 'Embeddings — try OpenAI text-embedding-3-small vs <a href="https://docs.cohere.com/v2/docs/embed-3" target="_blank" rel="noopener">Cohere v3</a> vs <a href="https://huggingface.co/BAAI/bge-large-en-v1.5" target="_blank" rel="noopener">BGE</a> — quality vs cost', hours: 2 },
+        { id: 'p2-w5-t3', text: 'Embeddings — try OpenAI text-embedding-3-small vs <a href="https://docs.cohere.com/docs/cohere-embed" target="_blank" rel="noopener">Cohere Embed v4</a> vs <a href="https://huggingface.co/BAAI/bge-large-en-v1.5" target="_blank" rel="noopener">BGE</a> — quality vs cost', hours: 2 },
         { id: 'p2-w5-t4', text: 'Install Chroma locally, ingest 5 PDFs you care about', hours: 2 },
         { id: 'p2-w5-t5', text: '3 chunking strategies — fixed, recursive, semantic. Compare retrieval quality.', hours: 2 },
         { id: 'p2-w5-t6', text: '🔥 <b>Self-Attention Day</b> — read <a href="https://sebastianraschka.com/blog/2023/self-attention-from-scratch.html" target="_blank" rel="noopener">Raschka — Self-Attention from Scratch</a> + watch first 45min of <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener">Karpathy — Let\'s Build GPT</a>. Output: 500-word note in portfolio repo explaining attention in your own words, citing <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Vaswani et al.</a>', hours: 6 },
@@ -178,7 +178,7 @@ const PLAN = [
       tasks: [
         { id: 'p2-w7-t1', text: 'BM25 sparse search (`rank_bm25`) for hybrid retrieval', hours: 2 },
         { id: 'p2-w7-t2', text: 'Reciprocal Rank Fusion between dense + sparse', hours: 2 },
-        { id: 'p2-w7-t3', text: '<a href="https://docs.cohere.com/v2/docs/rerank-2" target="_blank" rel="noopener">Cohere Rerank</a> API (free tier) or cross-encoder reranker', hours: 2 },
+        { id: 'p2-w7-t3', text: '<a href="https://docs.cohere.com/docs/rerank" target="_blank" rel="noopener">Cohere Rerank</a> API (free tier) or cross-encoder reranker', hours: 2 },
         { id: 'p2-w7-t4', text: 'HyDE — Hypothetical Document Embeddings (improves recall)', hours: 2 },
         { id: 'p2-w7-t5', text: 'Multi-query retrieval + query rewriting', hours: 2 },
         { id: 'p2-w7-t6', text: 'Benchmark latency p50/p95 with/without reranking', hours: 1 }
@@ -329,7 +329,7 @@ const PLAN = [
       week: 14,
       focus: 'MCP — the must-learn 2026 protocol',
       tasks: [
-        { id: 'p3-w13-t1', text: 'Read <a href="https://modelcontextprotocol.io/" target="_blank" rel="noopener">MCP spec overview</a> + <a href="https://modelcontextprotocol.io/quickstart" target="_blank" rel="noopener">Quickstart</a>', hours: 1.5 },
+        { id: 'p3-w13-t1', text: 'Read <a href="https://modelcontextprotocol.io/" target="_blank" rel="noopener">MCP spec overview</a> + <a href="https://modelcontextprotocol.io/docs/develop/build-server" target="_blank" rel="noopener">Quickstart</a>', hours: 1.5 },
         { id: 'p3-w13-t2', text: 'Build first MCP server with FastMCP — exposes 2–3 tools', hours: 3 },
         { id: 'p3-w13-t3', text: 'Connect MCP server to Claude Desktop + test', hours: 1.5 },
         { id: 'p3-w13-t4', text: 'MCP client → call your server from a LangGraph agent', hours: 3 },
@@ -403,7 +403,7 @@ const PLAN = [
         { id: 'p4-w15-t3', text: 'Prometheus metrics — `prometheus-fastapi-instrumentator`', hours: 1.5 },
         { id: 'p4-w15-t4', text: 'LangSmith production traces with project + env tags', hours: 1.5 },
         { id: 'p4-w15-t5', text: 'Read <a href="https://github.com/fastapi/full-stack-fastapi-template" target="_blank" rel="noopener">Full-Stack FastAPI Template</a> — copy patterns', hours: 2 },
-        { id: 'p4-w15-t6', text: 'Prompt versioning — set up <a href="https://docs.smith.langchain.com/old/prompt_engineering" target="_blank" rel="noopener">LangSmith Prompt Hub</a> or PromptLayer', hours: 1.5 }
+        { id: 'p4-w15-t6', text: 'Prompt versioning — set up <a href="https://docs.langchain.com/langsmith/prompt-engineering" target="_blank" rel="noopener">LangSmith Prompt Hub</a> or PromptLayer', hours: 1.5 }
       ]
     },
     {
@@ -465,7 +465,7 @@ const PLAN = [
     { name: 'vLLM (production serving)', url: 'https://docs.vllm.ai/', icon: '⚡', tags: ['free', 'stretch'] },
     { name: 'Locust load testing', url: 'https://locust.io/', icon: '🦗', tags: ['free', 'new'] },
     { name: 'Microsoft Presidio (PII)', url: 'https://microsoft.github.io/presidio/', icon: '🛡️', tags: ['free', 'new'] },
-    { name: 'LangSmith Prompt Hub', url: 'https://docs.smith.langchain.com/old/prompt_engineering', icon: '🔖', tags: ['free', 'new'] },
+    { name: 'LangSmith Prompt Hub', url: 'https://docs.langchain.com/langsmith/prompt-engineering', icon: '🔖', tags: ['free', 'new'] },
     { name: 'Langfuse (open-source observability)', url: 'https://langfuse.com/', icon: '📊', tags: ['free'] }
   ]
 },
@@ -488,7 +488,7 @@ const PLAN = [
       { id: 'buf2-t1', text: 'Sit AWS MLA-C01 exam (book it 2 weeks in advance)', hours: 3 },
       { id: 'buf2-t2', text: 'Polish all 4 portfolio projects — READMEs, demos, screenshots, deploy badges', hours: 3 },
       { id: 'buf2-t3', text: 'Final resume pass — 2 versions (PK/Gulf, US-remote). Get feedback from 2 senior engineers.', hours: 1.5 },
-      { id: 'buf2-t4', text: 'Run 3 mock interviews — <a href="https://www.pramp.com/" target="_blank" rel="noopener">Pramp</a> or <a href="https://interviewing.io/" target="_blank" rel="noopener">interviewing.io</a>', hours: 3 },
+      { id: 'buf2-t4', text: 'Run 3 mock interviews — <a href="https://www.tryexponent.com/practice" target="_blank" rel="noopener">Pramp</a> or <a href="https://interviewing.io/" target="_blank" rel="noopener">interviewing.io</a>', hours: 3 },
       { id: 'buf2-t5', text: 'System design practice — design a customer support agent at scale (write it up)', hours: 1.5 }
     ]
   }],
@@ -502,7 +502,7 @@ const PLAN = [
     ]
   },
   resources: [
-    { name: 'Pramp (peer mock interviews, free)', url: 'https://www.pramp.com/', icon: '🎤', tags: ['free', 'core'] },
+    { name: 'Exponent Practice — peer mock interviews (formerly Pramp, free)', url: 'https://www.tryexponent.com/practice', icon: '🎤', tags: ['free', 'core'] },
     { name: 'interviewing.io', url: 'https://interviewing.io/', icon: '🎤', tags: ['paid'], note: 'Anonymous mocks with FAANG engineers.' },
     { name: 'AWS MLA-C01 Practice Exam (Tutorials Dojo)', url: 'https://portal.tutorialsdojo.com/courses/aws-certified-machine-learning-engineer-associate-practice-exams/', icon: '🏆', tags: ['paid', 'core'], note: 'The gold-standard practice tests.' }
   ]
