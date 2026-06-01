@@ -80,7 +80,7 @@ const PLAN = [
         { id: 'p1-w2-t2', text: 'Implement structured outputs with Pydantic + OpenAI JSON mode', hours: 2 },
         { id: 'p1-w2-t3', text: 'Try <a href="https://python.useinstructor.com/" target="_blank" rel="noopener">Instructor library</a> — easier path to structured outputs (rapidly adopted in 2026 JDs)', hours: 1.5 },
         { id: 'p1-w2-t4', text: 'Function/tool calling — build a weather-fetch agent', hours: 2 },
-        { id: 'p1-w2-t5', text: '<a href="https://docs.claude.com/en/docs/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic prompt caching</a> — biggest cost lever in 2026; implement on a long system prompt', hours: 1.5 },
+        { id: 'p1-w2-t5', text: '<a href="https://docs.claude.com/en/docs/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic prompt caching</a> — biggest cost lever in 2026; implement on a long system prompt (context engineering)', hours: 1.5 },
         { id: 'p1-w2-t6', text: '🔥 <b>Tokenizer Day</b> — work through <a href="https://github.com/rasbt/LLMs-from-scratch/blob/main/ch02/05_bpe-from-scratch/bpe-from-scratch.ipynb" target="_blank" rel="noopener">Raschka BPE-from-scratch notebook</a> end-to-end. Output: blog post "Why my Urdu prompts cost 3× English" → Gulf-market-relevant portfolio piece + interview talking point.', hours: 6 }
       ]
     },
@@ -152,7 +152,7 @@ const PLAN = [
       week: 5,
       focus: 'Document parsing + embeddings + chunking',
       tasks: [
-        { id: 'p2-w5-t1', text: 'Read <a href="https://eugeneyan.com/writing/llm-patterns/" target="_blank" rel="noopener">Eugene Yan — Patterns for LLM Systems</a> (RAG section) (context engineering)', hours: 2 },
+        { id: 'p2-w5-t1', text: 'Read <a href="https://eugeneyan.com/writing/llm-patterns/" target="_blank" rel="noopener">Eugene Yan — Patterns for LLM Systems</a> (RAG section)', hours: 2 },
         { id: 'p2-w5-t2', text: 'Document parsing — try <a href="https://unstructured.io/" target="_blank" rel="noopener">unstructured.io</a>, <a href="https://github.com/VikParuchuri/marker" target="_blank" rel="noopener">Marker</a>, <a href="https://www.llamaindex.ai/llamaparse" target="_blank" rel="noopener">LlamaParse</a> on the same messy PDF — compare output', hours: 3 },
         { id: 'p2-w5-t3', text: 'Embeddings — try OpenAI text-embedding-3-small vs <a href="https://docs.cohere.com/docs/cohere-embed" target="_blank" rel="noopener">Cohere Embed v4</a> vs <a href="https://huggingface.co/BAAI/bge-large-en-v1.5" target="_blank" rel="noopener">BGE</a> — quality vs cost', hours: 2 },
         { id: 'p2-w5-t4', text: 'Install Chroma locally, ingest 5 PDFs you care about', hours: 2 },
