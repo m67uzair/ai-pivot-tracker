@@ -143,7 +143,7 @@ const PLAN = [
   number: '02',
   title: 'Retrieval-Augmented Generation',
   weeks: 'Wks 5–9',
-  hours: 67,
+  hours: 68.5,
   budget: '$20–40 (APIs + Cohere rerank + LangSmith free tier)',
   summary: 'End-to-end production RAG with document parsing, hybrid retrieval, reranking, and measurable evals. The #1 in-demand pattern in 2026 hiring data.',
   mvp: 'If short on time: must-do = W5 (parsing + embeddings), W8 (evals — most important week of the entire plan), W9 (ship). Skim W6 + W7.',
@@ -152,7 +152,7 @@ const PLAN = [
       week: 5,
       focus: 'Document parsing + embeddings + chunking',
       tasks: [
-        { id: 'p2-w5-t1', text: 'Read <a href="https://eugeneyan.com/writing/llm-patterns/" target="_blank" rel="noopener">Eugene Yan — Patterns for LLM Systems</a> (RAG section)', hours: 2 },
+        { id: 'p2-w5-t1', text: 'Read <a href="https://eugeneyan.com/writing/llm-patterns/" target="_blank" rel="noopener">Eugene Yan — Patterns for LLM Systems</a> (RAG section) (context engineering)', hours: 2 },
         { id: 'p2-w5-t2', text: 'Document parsing — try <a href="https://unstructured.io/" target="_blank" rel="noopener">unstructured.io</a>, <a href="https://github.com/VikParuchuri/marker" target="_blank" rel="noopener">Marker</a>, <a href="https://www.llamaindex.ai/llamaparse" target="_blank" rel="noopener">LlamaParse</a> on the same messy PDF — compare output', hours: 3 },
         { id: 'p2-w5-t3', text: 'Embeddings — try OpenAI text-embedding-3-small vs <a href="https://docs.cohere.com/docs/cohere-embed" target="_blank" rel="noopener">Cohere Embed v4</a> vs <a href="https://huggingface.co/BAAI/bge-large-en-v1.5" target="_blank" rel="noopener">BGE</a> — quality vs cost', hours: 2 },
         { id: 'p2-w5-t4', text: 'Install Chroma locally, ingest 5 PDFs you care about', hours: 2 },
@@ -207,7 +207,8 @@ const PLAN = [
         { id: 'p2-w9-t3', text: 'Build minimal Streamlit or Next.js UI for upload + query', hours: 4 },
         { id: 'p2-w9-t4', text: 'Deploy to <a href="https://railway.com/" target="_blank" rel="noopener">Railway</a> or <a href="https://render.com" target="_blank" rel="noopener">Render</a>', hours: 1 },
         { id: 'p2-w9-t5', text: 'README with eval numbers: "82% faithfulness on 50-item set, p95 1.8s"', hours: 2 },
-        { id: 'p2-w9-t6', text: 'Write blog post — "What I learned building production RAG"', hours: 3 }
+        { id: 'p2-w9-t6', text: 'Write blog post — "What I learned building production RAG"', hours: 3 },
+        { id: 'p2-w9-t7', text: '★ 🔒 Add permission-aware retrieval to DocChat — filter retrieved chunks by user/role ACL metadata. 2026 enterprise RAG pattern; interviewers ask about multi-department document permissions. Guide: <a href="https://www.pinecone.io/learn/rag-access-control/" target="_blank" rel="noopener">Pinecone — RAG with Access Control</a>', hours: 1.5 }
       ]
     }
   ],
@@ -250,7 +251,7 @@ const PLAN = [
   number: 'B1',
   title: 'Buffer Week — Review + Application Engine',
   weeks: 'Wk 10',
-  hours: 10,
+  hours: 12.5,
   budget: '$0',
   isBuffer: true,
   summary: 'Catch up. Polish what you have. Start the parallel job-search engine. Most plans fail because they\'re too rigid; this buffer is non-negotiable.',
@@ -264,7 +265,8 @@ const PLAN = [
       { id: 'buf1-t3', text: 'Polish DocChat README — add screenshots, deploy badge, eval numbers prominent', hours: 2 },
       { id: 'buf1-t4', text: 'Build target company list — 30 companies (PK / remote / Gulf segments)', hours: 1.5 },
       { id: 'buf1-t5', text: 'Set up an application tracker (Notion or sheet) — date, company, status, contact', hours: 1 },
-      { id: 'buf1-t6', text: 'First mock system design — "Design a RAG-powered customer support tool" (record yourself)', hours: 1.5 }
+      { id: 'buf1-t6', text: 'First mock system design — "Design a RAG-powered customer support tool" (record yourself)', hours: 1.5 },
+      { id: 'buf1-t7', text: 'ML vocabulary for LLM engineers (reading/video only, NO coding): supervised vs unsupervised, train/val/test split, overfitting, precision/recall/F1/AUC, what embeddings are, when classical ML beats an LLM, what fine-tuning actually does. Interview-readiness only. Watch <a href="https://www.youtube.com/watch?v=zjkBMFhNj_g" target="_blank" rel="noopener">Karpathy — Intro to LLMs (1h)</a> (note: 2023, still the best plain-English intro; concepts current even if model names are dated).', hours: 2.5 }
     ]
   }],
   project: {
@@ -297,7 +299,7 @@ const PLAN = [
       focus: 'Agent fundamentals + framework comparison',
       tasks: [
         { id: 'p3-w10-t1', text: 'Read <a href="https://www.anthropic.com/research/building-effective-agents" target="_blank" rel="noopener">Anthropic — Building Effective Agents</a>', hours: 2 },
-        { id: 'p3-w10-t2', text: '🔥 <b>Raw Agent Loop Day</b> — Build ~60-line ReAct loop with raw Anthropic SDK + tool_use (Thought → Action → Observation). No frameworks. Reference <a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">Yao et al. ReAct paper</a>. Push as `raw_agent_loop.py` to portfolio — this is your "explain agents to me" interview artifact.', hours: 6 },
+        { id: 'p3-w10-t2', text: '🔥 <b>Raw Agent Loop Day</b> — Build ~60-line ReAct loop with raw Anthropic SDK + tool_use (Thought → Action → Observation). No frameworks. Reference <a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">Yao et al. ReAct paper</a>. Push as `raw_agent_loop.py` to portfolio — this is your "explain agents to me" interview artifact. (agentic engineering)', hours: 6 },
         { id: 'p3-w10-t3', text: 'HuggingFace <a href="https://huggingface.co/learn/agents-course" target="_blank" rel="noopener">Agents Course</a> — Unit 1', hours: 2 },
         { id: 'p3-w10-t4', text: 'Read <a href="https://platform.openai.com/docs/guides/agents" target="_blank" rel="noopener">OpenAI Agents SDK docs</a>', hours: 1 },
         { id: 'p3-w10-t5', text: '30-min hands-on with <a href="https://docs.crewai.com/" target="_blank" rel="noopener">CrewAI</a> + scan <a href="https://docs.ag2.ai/" target="_blank" rel="noopener">AutoGen</a> docs — know when each is named in JDs', hours: 1.5 }
@@ -389,7 +391,7 @@ const PLAN = [
   number: '04',
   title: 'Production Hardening + Cloud AI',
   weeks: 'Wks 16–19',
-  hours: 52,
+  hours: 57.5,
   budget: '$50–80 (AWS Bedrock, RDS, ECS, Redis)',
   summary: 'Take one project and harden it for enterprise. Add observability, auth, rate-limits, Kubernetes basics, security depth, async jobs, and AWS Bedrock. Start MLA-C01 prep.',
   mvp: 'If short on time: must-do = W15 (containerization + observability) + W17 (Bedrock + cloud deploy). Defer K8s, load testing, self-hosting.',
@@ -403,7 +405,8 @@ const PLAN = [
         { id: 'p4-w15-t3', text: 'Prometheus metrics — `prometheus-fastapi-instrumentator`', hours: 1.5 },
         { id: 'p4-w15-t4', text: 'LangSmith production traces with project + env tags', hours: 1.5 },
         { id: 'p4-w15-t5', text: 'Read <a href="https://github.com/fastapi/full-stack-fastapi-template" target="_blank" rel="noopener">Full-Stack FastAPI Template</a> — copy patterns', hours: 2 },
-        { id: 'p4-w15-t6', text: 'Prompt versioning — set up <a href="https://docs.langchain.com/langsmith/prompt-engineering" target="_blank" rel="noopener">LangSmith Prompt Hub</a> or PromptLayer', hours: 1.5 }
+        { id: 'p4-w15-t6', text: 'Prompt versioning — set up <a href="https://docs.langchain.com/langsmith/prompt-engineering" target="_blank" rel="noopener">LangSmith Prompt Hub</a> or PromptLayer', hours: 1.5 },
+        { id: 'p4-w15-t7', text: 'Concept primer: vLLM / Ollama / TGI — what self-hosted LLM inference is and when teams use it (reading only, no setup). For interview literacy; appears in senior ML-platform JDs you won\'t target but should recognize. Read <a href="https://www.buildwithmatija.com/blog/vllm-vs-ollama-vs-tgi-choose-llm-inference-engine" target="_blank" rel="noopener">vLLM vs Ollama vs TGI (2026)</a>', hours: 0.5 }
       ]
     },
     {
@@ -414,7 +417,8 @@ const PLAN = [
         { id: 'p4-w16-t2', text: 'Per-user rate limiting with Redis (`slowapi`)', hours: 2 },
         { id: 'p4-w16-t3', text: 'Semantic caching — Redis + embedding similarity', hours: 2.5 },
         { id: 'p4-w16-t4', text: 'Secrets via env + AWS Secrets Manager', hours: 1.5 },
-        { id: 'p4-w16-t5', text: 'Async job queue — <a href="https://docs.celeryq.dev/" target="_blank" rel="noopener">Celery</a> + Redis for long-running LLM jobs', hours: 2 }
+        { id: 'p4-w16-t5', text: 'Async job queue — <a href="https://docs.celeryq.dev/" target="_blank" rel="noopener">Celery</a> + Redis for long-running LLM jobs', hours: 2 },
+        { id: 'p4-w16-t6', text: 'Log token usage + dollar cost per request; add alerting on cost outliers. 2026 JDs increasingly state \'you own quality, latency, and cost\' — make cost a first-class metric in your app. Start with <a href="https://www.kdnuggets.com/the-beginners-guide-to-tracking-token-usage-in-llm-apps" target="_blank" rel="noopener">KDnuggets — Tracking Token Usage in LLM Apps</a>; for a 1-line proxy approach see <a href="https://docs.helicone.ai/guides/cookbooks/cost-tracking" target="_blank" rel="noopener">Helicone — Cost Tracking</a>', hours: 2 }
       ]
     },
     {
@@ -426,7 +430,8 @@ const PLAN = [
         { id: 'p4-w17-t3', text: 'Deploy to ECS Fargate (or AppRunner)', hours: 2.5 },
         { id: 'p4-w17-t4', text: 'CloudWatch dashboards + cost alerts', hours: 1 },
         { id: 'p4-w17-t5', text: '★ Kubernetes basics — <a href="https://killercoda.com/playgrounds/scenario/kubernetes" target="_blank" rel="noopener">Killercoda free playground</a> + deploy one pod (K8s is 27% of agentic JDs)', hours: 2.5 },
-        { id: 'p4-w17-t6', text: '★ Self-hosting peek — <a href="https://ollama.com/" target="_blank" rel="noopener">Ollama</a> local + try Llama or Qwen', hours: 1 }
+        { id: 'p4-w17-t6', text: '★ Self-hosting peek — <a href="https://ollama.com/" target="_blank" rel="noopener">Ollama</a> local + try Llama or Qwen', hours: 1 },
+        { id: 'p4-w17-t7', text: 'Build ONE workflow in n8n (free tier) connecting an LLM to a trigger/action. Familiarity only — n8n/Zapier appear in Gulf/SME + freelance automation JDs. Do not go deeper; this is a fallback skill, not core. Follow <a href="https://docs.n8n.io/advanced-ai/intro-tutorial/" target="_blank" rel="noopener">n8n Docs — Build an AI workflow</a> (free Gemini-key template: <a href="https://n8n.io/workflows/6270-build-your-first-ai-agent/" target="_blank" rel="noopener">Build your first AI agent</a>)', hours: 2 }
       ]
     },
     {
@@ -439,7 +444,8 @@ const PLAN = [
         { id: 'p4-w18-t4', text: 'Start AWS MLA-C01 prep — Stephane Maarek or Adrian Cantrill course', hours: 2.5 },
         { id: 'p4-w18-t5', text: 'README section: "What I\'d improve at 10× scale"', hours: 1 },
         { id: 'p4-w18-t6', text: 'Load testing — <a href="https://locust.io/" target="_blank" rel="noopener">Locust</a> on your endpoint, document breakpoints', hours: 2 },
-        { id: 'p4-w18-t7', text: 'Security deep-dive — PII redaction (<a href="https://microsoft.github.io/presidio/" target="_blank" rel="noopener">Presidio</a>), output filtering, prompt injection at scale', hours: 2.5 }
+        { id: 'p4-w18-t7', text: 'Security deep-dive — PII redaction (<a href="https://microsoft.github.io/presidio/" target="_blank" rel="noopener">Presidio</a>), output filtering, prompt injection at scale', hours: 2.5 },
+        { id: 'p4-w18-t8', text: 'Add a human_review_required flag pattern to your agent — gate high-stakes actions for human approval before execution. Signals human-in-the-loop design (required in healthcare/regulated AI JDs). Reference <a href="https://docs.langchain.com/oss/python/langchain/human-in-the-loop" target="_blank" rel="noopener">LangChain — Human-in-the-Loop</a>', hours: 1 }
       ]
     }
   ],
@@ -617,7 +623,8 @@ const TRACKS = [
       { id: 'tr-net-7', text: 'Show HN — submit Project 3 and Project 5' },
       { id: 'tr-net-8', text: '1 merged PR to LangChain / LangGraph / Flutter AI Toolkit (even docs)' },
       { id: 'tr-net-9', text: 'Join AI Hub Pakistan + Karachi AI meetups + r/LocalLLaMA + LangChain Discord + Latent Space Discord' },
-      { id: 'tr-net-10', text: '<b>Artifacts discipline</b> — maintain `/artifacts` directory in portfolio repo. Ship ≥1 reusable output per week (SKILL.md, prompt template, eval harness, CLI tool, code snippet, or blog draft). Goal: 25+ artifacts by W24. Steals the best idea from rohitg00\'s repo.' }
+      { id: 'tr-net-10', text: '<b>Artifacts discipline</b> — maintain `/artifacts` directory in portfolio repo. Ship ≥1 reusable output per week (SKILL.md, prompt template, eval harness, CLI tool, code snippet, or blog draft). Goal: 25+ artifacts by W24. Steals the best idea from rohitg00\'s repo.' },
+      { id: 'tr-net-11', text: 'Every project README documents your AI-assisted dev workflow (Cursor / Claude Code / MCP setup, configured how). 2026 JDs explicitly screen for \'AI fluency / agentic engineering mindset\' — make yours visible.' }
     ]
   },
   {
@@ -655,7 +662,8 @@ const TRACKS = [
       { id: 'tr-app-6', text: 'Apply on Crossover.com (publishes Karachi/Lahore AI roles)' },
       { id: 'tr-app-7', text: 'Set up Deel or Remote.com profile for contractor structure' },
       { id: 'tr-app-8', text: 'Get 3 senior AI engineers to roast your GitHub README before applying' },
-      { id: 'tr-app-9', text: 'Practice technical English on Loom — 15 min/day for 60 days' }
+      { id: 'tr-app-9', text: 'Practice technical English on Loom — 15 min/day for 60 days' },
+      { id: 'tr-app-10', text: 'Resume bullet template: \'Integrated [LLM capability] into [existing system, e.g. CRM/ERP] using [framework], measured [outcome/metric].\' Most AI-engineer JDs describe the role as integration glue — use this framing even if a project isn\'t a literal enterprise integration.' }
     ]
   },
   {
