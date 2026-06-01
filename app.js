@@ -1202,6 +1202,10 @@ function renderResource(r) {
   return wrap;
 }
 
+function isWeekOpen(key) {
+  return state.weekExpanded ? state.weekExpanded[key] !== false : true;
+}
+
 function renderPhase(phase) {
   const phaseEl = el('div', {
     class: 'phase' + (state.expanded[phase.id] ? ' open' : '') + (phase.isBuffer ? ' buffer' : ''),
@@ -1246,10 +1250,18 @@ function renderPhase(phase) {
 
   body.appendChild(el('div', { class: 'section-label' }, ['Weekly Tasks']));
   phase.weekBlocks.forEach(wb => {
-    const wbEl = el('div', { class: 'week-block' });
+    const wkKey = phase.id + '-w' + wb.week;
+    const wbEl = el('div', { class: 'week-block' + (isWeekOpen(wkKey) ? ' open' : '') });
     const head = el('div', { class: 'week-block-head' });
+    head.appendChild(el('div', { class: 'week-caret' }, ['›']));
     head.appendChild(el('div', { class: 'week-num' }, [`WEEK ${wb.week}`]));
     head.appendChild(el('div', { class: 'week-focus' }, [wb.focus]));
+    head.addEventListener('click', () => {
+      const open = wbEl.classList.toggle('open');
+      state.weekExpanded = state.weekExpanded || {};
+      state.weekExpanded[wkKey] = open;
+      saveState();
+    });
     wbEl.appendChild(head);
     const list = el('ul', { class: 'tasks-list' });
     wb.tasks.forEach(t => list.appendChild(renderTask(t)));

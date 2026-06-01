@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-<title>AI Engineer Pivot — Tracker v1.2</title>
+<title>AI Engineer Pivot — Tracker</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
@@ -476,11 +476,24 @@
   .week-block { margin-bottom: 18px; }
   .week-block-head {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 10px;
     margin-bottom: 8px;
     flex-wrap: wrap;
+    cursor: pointer;
+    user-select: none;
   }
+  .week-caret {
+    font-family: var(--mono);
+    color: var(--text-faint);
+    font-size: 14px;
+    transition: transform 0.15s ease;
+    margin-left: -2px;
+  }
+  .week-block.open .week-caret { transform: rotate(90deg); color: var(--text-dim); }
+  .week-block .tasks-list { display: none; }
+  .week-block.open .tasks-list { display: block; }
+  .week-block-head:hover .week-focus { color: var(--accent); }
   .week-num {
     font-family: var(--mono);
     font-size: 11px;
@@ -1010,7 +1023,7 @@
 <!-- ===== TOP STICKY BAR ===== -->
 <div class="topbar">
   <div class="topbar-row">
-    <div class="topbar-title">AI ENGINEER PIVOT <strong>v1.2 · 25 WKS</strong></div>
+    <div class="topbar-title">AI ENGINEER PIVOT <strong>25 WEEKS</strong></div>
     <div class="topbar-meta">
       <span class="week-pill" id="currentWeekPill">W0</span>
       <span class="topbar-pct" id="topPct">0%</span>
@@ -1021,9 +1034,9 @@
 
 <!-- ===== HERO ===== -->
 <section class="hero">
-  <div class="hero-eyebrow">Karachi → Remote AI Engineer</div>
+  <div class="hero-eyebrow">AI Engineer Roadmap</div>
   <h1 class="hero-title">Ship <span class="accent">3 deployed AI projects</span> in 25 weeks.</h1>
-  <p class="hero-sub">v1.2 adds 4 🔥 "from-scratch" days (BPE tokenizer, self-attention, raw agent loop, autograd primer) — interview-signal inserts that take ~16h total over the 25 weeks.</p>
+  <p class="hero-sub">Includes 4 🔥 "from-scratch" days (BPE tokenizer, self-attention, raw agent loop, autograd primer) — interview-signal inserts that take ~16h total over the 25 weeks.</p>
   <div class="hero-stats">
     <div class="stat">
       <div class="stat-val" id="statDone">0</div>
