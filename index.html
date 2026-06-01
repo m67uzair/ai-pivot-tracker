@@ -494,6 +494,22 @@
   .week-block .tasks-list { display: none; }
   .week-block.open .tasks-list { display: block; }
   .week-block-head:hover .week-focus { color: var(--accent); }
+  .week-status {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    background: var(--bg-soft);
+    border: 1px solid var(--border-soft);
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .week-status.done {
+    color: var(--green);
+    background: var(--green-soft);
+    border-color: rgba(52,211,153,0.4);
+  }
   .week-num {
     font-family: var(--mono);
     font-size: 11px;

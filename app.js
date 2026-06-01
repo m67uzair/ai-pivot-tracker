@@ -1206,6 +1206,12 @@ function isWeekOpen(key) {
   return state.weekExpanded ? state.weekExpanded[key] !== false : true;
 }
 
+function weekBadgeState(phaseId, weekNum) {
+  const { done, total } = computeWeek(phaseId, weekNum);
+  const complete = total > 0 && done === total;
+  return { text: complete ? '✓ Done' : `${done}/${total}`, complete };
+}
+
 function renderPhase(phase) {
   const phaseEl = el('div', {
     class: 'phase' + (state.expanded[phase.id] ? ' open' : '') + (phase.isBuffer ? ' buffer' : ''),
@@ -1256,6 +1262,8 @@ function renderPhase(phase) {
     head.appendChild(el('div', { class: 'week-caret' }, ['›']));
     head.appendChild(el('div', { class: 'week-num' }, [`WEEK ${wb.week}`]));
     head.appendChild(el('div', { class: 'week-focus' }, [wb.focus]));
+    const ws = weekBadgeState(phase.id, wb.week);
+    head.appendChild(el('span', { class: 'week-status' + (ws.complete ? ' done' : ''), 'data-week-status': wkKey }, [ws.text]));
     head.addEventListener('click', () => {
       const open = wbEl.classList.toggle('open');
       state.weekExpanded = state.weekExpanded || {};
@@ -1345,6 +1353,14 @@ function updatePhaseUI(phaseId) {
     taskBadge.textContent = `${done}/${total} tasks`;
     taskBadge.classList.toggle('done', done === total && total > 0);
   }
+  if (phase) phase.weekBlocks.forEach(wb => {
+    const badge = document.querySelector(`[data-week-status="${phaseId}-w${wb.week}"]`);
+    if (badge) {
+      const ws = weekBadgeState(phaseId, wb.week);
+      badge.textContent = ws.text;
+      badge.classList.toggle('done', ws.complete);
+    }
+  });
   updateTimelineRow(phaseId);
 }
 
