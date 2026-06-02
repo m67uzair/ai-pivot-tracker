@@ -151,6 +151,69 @@
     letter-spacing: 0.06em;
     margin-top: 4px;
   }
+  .pace-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .pace-chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+    flex-shrink: 0;
+  }
+  .pace-chip.ahead {
+    background: var(--green-soft);
+    color: var(--green);
+    border-color: rgba(52,211,153,0.3);
+  }
+  .pace-chip.behind {
+    background: rgba(248,113,113,0.12);
+    color: var(--red);
+    border-color: rgba(248,113,113,0.3);
+  }
+  .pace-chip.on-track {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: rgba(245,158,11,0.3);
+  }
+  .pace-detail {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .pace-sep {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--border);
+  }
+  .target-date-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .target-date-btn:hover { color: var(--accent); }
+  .target-date-btn::after {
+    content: "✎";
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .target-date-btn:hover::after { opacity: 1; }
 
   /* ===== Timeline Grid ===== */
   .timeline-section {
@@ -1070,6 +1133,12 @@
       <div class="stat-val" id="statHours">0</div>
       <div class="stat-lbl">hrs logged</div>
     </div>
+  </div>
+  <div class="pace-row">
+    <span class="pace-chip" id="paceChip">—</span>
+    <span class="pace-detail" id="paceDetail"></span>
+    <span class="pace-sep">·</span>
+    <button class="target-date-btn" id="targetDateBtn" onclick="openTargetDateEditor()">—</button>
   </div>
 </section>
 

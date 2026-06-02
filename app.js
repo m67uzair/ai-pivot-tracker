@@ -1006,6 +1006,80 @@ function daysSinceStart() {
 function currentWeek() {
   return Math.min(Math.floor(daysSinceStart() / 7), TOTAL_WEEKS - 1);
 }
+function computePace() {
+  const cw = currentWeek();
+  const dayInWeek = daysSinceStart() % 7;
+  let expected = 0, done = 0;
+  PLAN.forEach(phase => {
+    phase.weekBlocks.forEach(wb => {
+      if (wb.week < cw) {
+        // Past weeks: fully expected; always count if done
+        wb.tasks.forEach(t => {
+          expected += 1;
+          if (state.tasks[t.id]) done++;
+        });
+      } else if (wb.week === cw) {
+        // Current week: pro-rated by day; count if done
+        const fraction = dayInWeek / 7;
+        wb.tasks.forEach(t => {
+          expected += fraction;
+          if (state.tasks[t.id]) done++;
+        });
+      } else {
+        // Future weeks: not expected yet, but count completions as ahead-of-schedule bonus
+        wb.tasks.forEach(t => {
+          if (state.tasks[t.id]) done++;
+        });
+      }
+    });
+  });
+  const roundedExpected = Math.round(expected);
+  return { delta: done - roundedExpected, done, expected: roundedExpected, currentWeek: cw };
+}
+
+function getTargetDate() {
+  return new Date((state.startedAt || Date.now()) + 25 * 7 * 86400000);
+}
+
+function formatTargetDate(d) {
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function updateTargetDateUI() {
+  const btn = document.getElementById('targetDateBtn');
+  if (!btn) return;
+  const d = getTargetDate();
+  const daysLeft = Math.ceil((d - Date.now()) / 86400000);
+  const suffix = daysLeft > 0 ? ` · ${daysLeft}d left` : daysLeft === 0 ? ' · today!' : ` · ${Math.abs(daysLeft)}d overdue`;
+  btn.textContent = formatTargetDate(d) + suffix;
+}
+
+window.openTargetDateEditor = function() {
+  const d = getTargetDate();
+  const iso = d.toISOString().split('T')[0];
+  showModal(`
+    <h3>Target completion date</h3>
+    <p>Set your finish-line date. The pace and schedule calculations shift to match — all 25 weeks are anchored to this date.</p>
+    <input type="date" id="targetDateInput" value="${iso}"
+      style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-soft);color:var(--text);font-size:14px;margin-top:8px;box-sizing:border-box" />
+    <div class="modal-actions">
+      <button onclick="hideModal()">Cancel</button>
+      <button class="primary" onclick="applyTargetDate()">Save</button>
+    </div>
+  `);
+};
+
+window.applyTargetDate = function() {
+  const input = document.getElementById('targetDateInput');
+  if (!input || !input.value) { toast('Pick a date'); return; }
+  const d = new Date(input.value);
+  if (isNaN(d)) { toast('Invalid date'); return; }
+  state.startedAt = d.getTime() - 25 * 7 * 86400000;
+  saveState();
+  hideModal();
+  fullRender();
+  toast('Target date updated');
+};
 
 // ==============================================================
 // =============== EL HELPER ====================================
@@ -1379,6 +1453,25 @@ function updateTrackUI(trackId) {
   if (c) c.textContent = `${done}/${ids.length}`;
 }
 
+function updatePaceUI() {
+  const { delta, done, expected, currentWeek: cw } = computePace();
+  const chip = document.getElementById('paceChip');
+  const detail = document.getElementById('paceDetail');
+  if (!chip || !detail) return;
+  chip.className = 'pace-chip';
+  if (delta > 0) {
+    chip.classList.add('ahead');
+    chip.textContent = `+${delta} task${delta !== 1 ? 's' : ''} ahead`;
+  } else if (delta < 0) {
+    chip.classList.add('behind');
+    chip.textContent = `${Math.abs(delta)} task${Math.abs(delta) !== 1 ? 's' : ''} behind`;
+  } else {
+    chip.classList.add('on-track');
+    chip.textContent = 'On track';
+  }
+  detail.textContent = `${done}/${expected} weekly tasks by W${cw}`;
+}
+
 function updateOverallUI() {
   const { done, total, pct } = computeOverall();
   document.getElementById('globalProgressFill').style.width = pct + '%';
@@ -1388,6 +1481,8 @@ function updateOverallUI() {
   document.getElementById('statHours').textContent = computeHoursDone();
   document.getElementById('statDays').textContent = daysSinceStart();
   document.getElementById('currentWeekPill').textContent = 'W' + currentWeek();
+  updatePaceUI();
+  updateTargetDateUI();
 }
 
 function findPhaseIdForTask(taskId) {
