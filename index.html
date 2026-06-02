@@ -1069,12 +1069,22 @@
     transition: background .15s, color .15s;
   }
   .artifact-repo:hover { background: var(--accent); color: var(--bg); }
-  .artifacts-foot { padding: 12px 14px; border-top: 1px solid var(--border); }
+  .artifacts-foot {
+    padding: 12px 14px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
   .artifacts-foot a {
     font-family: var(--mono); font-size: 11px; color: var(--text-dim); text-decoration: none;
     display: inline-flex; align-items: center; gap: 6px; word-break: break-all;
   }
   .artifacts-foot a:hover { color: var(--accent); }
+  .artifacts-refresh {
+    flex-shrink: 0;
+    background: var(--bg-soft); border: 1px solid var(--border); color: var(--text-dim);
+    font-family: var(--mono); font-size: 11px; padding: 5px 9px; border-radius: 6px;
+    transition: color .15s, border-color .15s;
+  }
+  .artifacts-refresh:hover { color: var(--accent); border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -1095,7 +1105,8 @@
   </div>
   <div class="artifacts-list" id="artifactsList"></div>
   <div class="artifacts-foot">
-    <a href="https://github.com/m67uzair/ai-pivot-practice" target="_blank" rel="noopener">↗ github.com/m67uzair/ai-pivot-practice</a>
+    <a href="https://github.com/m67uzair/ai-pivot-practice" target="_blank" rel="noopener">↗ ai-pivot-practice</a>
+    <button class="artifacts-refresh" id="artifactsRefresh" title="Re-fetch from GitHub">↻ refresh</button>
   </div>
 </aside>
 

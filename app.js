@@ -1663,23 +1663,119 @@ function fullRender() {
 // ==============================================================
 // =============== ARTIFACTS SIDEBAR ============================
 // ==============================================================
-const ARTIFACTS_REPO = 'https://github.com/m67uzair/ai-pivot-practice';
-const ARTIFACTS = [
-  {
-    name: 'Pokémon CLI', emoji: '🔴',
-    desc: 'Fetches the PokéAPI, parses the response into typed Pydantic models, and prints it.',
-    repo: ARTIFACTS_REPO + '/tree/main/pokemon-cli',
-    stack: ['Python', 'httpx', 'Pydantic'],
-    taskIds: ['p0-w0-t8']
-  },
-  {
-    name: 'Multi-Provider Chat Completion', emoji: '💬',
-    desc: 'Sends one prompt to Gemini, Groq (Llama 3.3) and OpenRouter, then prints the responses side-by-side to compare.',
-    repo: ARTIFACTS_REPO + '/tree/main/chat-completion-script',
-    stack: ['Python', 'google-genai', 'groq', 'openai'],
-    taskIds: ['p1-w1-t3']
+// Artifacts are discovered live from the practice repo — every top-level
+// folder that has a README.md becomes a card. Each README declares its
+// tracker metadata in a hidden comment block at the top:
+//
+//   <!-- artifact
+//   emoji: 🧱
+//   tasks: p1-w2-t2
+//   stack: Python, openai, groq, Pydantic
+//   -->
+//
+// name ← first "# H1" heading · desc ← first paragraph after the H1.
+const ARTIFACTS_OWNER = 'm67uzair';
+const ARTIFACTS_NAME = 'ai-pivot-practice';
+const ARTIFACTS_BRANCH = 'main';
+const ARTIFACTS_REPO = `https://github.com/${ARTIFACTS_OWNER}/${ARTIFACTS_NAME}`;
+const ARTIFACTS_CACHE_KEY = 'pivot-artifacts-cache-v1';
+const ARTIFACTS_TTL = 5 * 60 * 1000; // 5 min
+
+let ARTIFACTS = [];
+let artifactsState = 'idle'; // idle | loading | ready | error
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function parseArtifactMeta(md, folder) {
+  const meta = { emoji: '📦', name: folder, desc: '', stack: [], taskIds: [] };
+  const block = md.match(/<!--\s*artifact\b([\s\S]*?)-->/i);
+  if (block) {
+    block[1].split('\n').forEach(line => {
+      const m = line.match(/^\s*([a-zA-Z]+)\s*:\s*(.+?)\s*$/);
+      if (!m) return;
+      const key = m[1].toLowerCase(), val = m[2].trim();
+      if (key === 'emoji') meta.emoji = val;
+      else if (key === 'name') meta.name = val;
+      else if (key === 'desc') meta.desc = val;
+      else if (key === 'stack') meta.stack = val.split(',').map(s => s.trim()).filter(Boolean);
+      else if (key === 'tasks' || key === 'task') meta.taskIds = val.split(',').map(s => s.trim()).filter(Boolean);
+    });
   }
-];
+  const body = md.replace(/<!--[\s\S]*?-->/g, '');
+  const h1 = body.match(/^#\s+(.+?)\s*$/m);
+  if (h1 && meta.name === folder) meta.name = h1[1].trim();
+  if (!meta.desc) {
+    const afterH1 = h1 ? body.slice(body.indexOf(h1[0]) + h1[0].length) : body;
+    const paras = afterH1.split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
+    let p = paras.find(x => !/^[#|\-*>]/.test(x) && !x.startsWith('```'));
+    if (p) {
+      p = p.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[`*_>#]/g, '').replace(/\s+/g, ' ').trim();
+      if (p.length > 220) p = p.slice(0, 217) + '…';
+      meta.desc = p;
+    }
+  }
+  return meta;
+}
+
+function artifactSortKey(a) {
+  const ids = allTaskIds();
+  let min = Infinity;
+  (a.taskIds || []).forEach(id => {
+    const i = ids.indexOf(id);
+    if (i >= 0 && i < min) min = i;
+  });
+  return min;
+}
+
+async function fetchArtifacts() {
+  // Cache-buster: raw.githubusercontent.com caches files on a CDN for minutes,
+  // so a freshly-pushed README can otherwise come back stale.
+  const cb = `?cb=${Date.now()}`;
+  const treeUrl = `https://api.github.com/repos/${ARTIFACTS_OWNER}/${ARTIFACTS_NAME}/git/trees/${ARTIFACTS_BRANCH}${cb}`;
+  const res = await fetch(treeUrl, { cache: 'no-store' });
+  if (!res.ok) throw new Error('tree fetch failed: ' + res.status);
+  const data = await res.json();
+  const dirs = (data.tree || []).filter(n =>
+    n.type === 'tree' && !n.path.startsWith('.') && !n.path.startsWith('__'));
+  const found = await Promise.all(dirs.map(async d => {
+    try {
+      const url = `https://raw.githubusercontent.com/${ARTIFACTS_OWNER}/${ARTIFACTS_NAME}/${ARTIFACTS_BRANCH}/${d.path}/README.md${cb}`;
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) return null; // no README → not an artifact
+      const meta = parseArtifactMeta(await r.text(), d.path);
+      meta.repo = `${ARTIFACTS_REPO}/tree/${ARTIFACTS_BRANCH}/${d.path}`;
+      return meta;
+    } catch (e) { return null; }
+  }));
+  return found.filter(Boolean).sort((a, b) => artifactSortKey(a) - artifactSortKey(b));
+}
+
+async function loadArtifacts(force) {
+  const cachedRaw = await storage.get(ARTIFACTS_CACHE_KEY);
+  let cached = null;
+  if (cachedRaw) { try { cached = JSON.parse(cachedRaw); } catch (e) {} }
+  if (cached && Array.isArray(cached.items) && !ARTIFACTS.length) {
+    ARTIFACTS = cached.items;
+    artifactsState = 'ready';
+    renderArtifacts();
+  }
+  if (!force && cached && (Date.now() - (cached.ts || 0) < ARTIFACTS_TTL)) return;
+  if (!ARTIFACTS.length) { artifactsState = 'loading'; renderArtifacts(); }
+  try {
+    const items = await fetchArtifacts();
+    ARTIFACTS = items;
+    artifactsState = 'ready';
+    await storage.set(ARTIFACTS_CACHE_KEY, JSON.stringify({ ts: Date.now(), items }));
+  } catch (e) {
+    console.warn('artifacts fetch failed', e);
+    if (!ARTIFACTS.length) artifactsState = 'error';
+  }
+  renderArtifacts();
+}
 
 function artifactStripHtml(s) {
   const tmp = document.createElement('div');
@@ -1703,15 +1799,24 @@ function renderArtifacts() {
   if (!list) return;
   document.getElementById('artifactsCount').textContent = ARTIFACTS.length;
   list.innerHTML = '';
+
+  if (!ARTIFACTS.length) {
+    const msg = artifactsState === 'loading' ? 'Loading artifacts…'
+      : artifactsState === 'error' ? "Couldn't reach GitHub — tap ↻ to retry."
+      : 'No artifacts found yet.';
+    list.appendChild(el('div', { style: 'color:var(--text-faint);font-size:12px;font-family:var(--mono);padding:10px;line-height:1.5;' }, [msg]));
+    return;
+  }
+
   ARTIFACTS.forEach(a => {
     const card = el('div', { class: 'artifact-card' });
     card.innerHTML =
-      `<h3><span>${a.emoji}</span>${a.name}</h3>` +
-      `<p>${a.desc}</p>` +
-      `<div class="artifact-stack">${a.stack.map(s => `<span>${s}</span>`).join('')}</div>` +
+      `<h3><span>${escapeHtml(a.emoji)}</span>${escapeHtml(a.name)}</h3>` +
+      `<p>${escapeHtml(a.desc)}</p>` +
+      `<div class="artifact-stack">${(a.stack || []).map(s => `<span>${escapeHtml(s)}</span>`).join('')}</div>` +
       `<div class="artifact-tasks"></div>`;
     const tasksWrap = card.querySelector('.artifact-tasks');
-    a.taskIds.forEach(id => {
+    (a.taskIds || []).forEach(id => {
       const info = artifactTaskInfo(id);
       if (!info) return;
       const txt = info.text.length > 54 ? info.text.slice(0, 53) + '…' : info.text;
@@ -1720,7 +1825,7 @@ function renderArtifacts() {
         title: 'Jump to: ' + info.text,
         onclick: () => { closeArtifacts(); scrollToSection(info.phaseId, 'phase'); }
       });
-      btn.innerHTML = `<span class="check">${info.done ? '✓' : ''}</span><span>${txt}</span>`;
+      btn.innerHTML = `<span class="check">${info.done ? '✓' : ''}</span><span>${escapeHtml(txt)}</span>`;
       tasksWrap.appendChild(btn);
     });
     const link = el('a', { class: 'artifact-repo', href: a.repo, target: '_blank', rel: 'noopener' });
@@ -1732,6 +1837,7 @@ function renderArtifacts() {
 
 function openArtifacts() {
   renderArtifacts();
+  loadArtifacts(); // TTL-guarded refresh when the panel is opened
   document.getElementById('artifactsPanel').classList.add('open');
   document.getElementById('artifactsPanel').setAttribute('aria-hidden', 'false');
   document.getElementById('artifactsBackdrop').classList.add('open');
@@ -1743,9 +1849,12 @@ function closeArtifacts() {
 }
 function setupArtifacts() {
   renderArtifacts();
+  loadArtifacts();
   document.getElementById('artifactsTab').addEventListener('click', openArtifacts);
   document.getElementById('artifactsClose').addEventListener('click', closeArtifacts);
   document.getElementById('artifactsBackdrop').addEventListener('click', closeArtifacts);
+  const refresh = document.getElementById('artifactsRefresh');
+  if (refresh) refresh.addEventListener('click', () => { toast('Refreshing artifacts…'); loadArtifacts(true); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArtifacts(); });
 }
 
