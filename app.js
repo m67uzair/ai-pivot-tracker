@@ -77,7 +77,7 @@ const PLAN = [
       focus: 'Structured outputs, tool calling, prompt caching',
       tasks: [
         { id: 'p1-w2-t1', text: 'Finish Anthropic tutorial — chapters 7–9', hours: 3 },
-        { id: 'p1-w2-t2', text: 'Implement structured outputs with Pydantic + OpenAI JSON mode', hours: 2 },
+        { id: 'p1-w2-t2', text: 'Implement Structured Outputs with Pydantic on the OpenAI Responses API (client.responses.parse + text_format=YourModel) — the model is constrained to your schema. Guide: <a href="https://platform.openai.com/docs/guides/structured-outputs" target="_blank" rel="noopener">OpenAI — Structured Outputs</a>. Know JSON mode exists as the older \'valid-JSON-only\' fallback, but default to Structured Outputs.', hours: 2 },
         { id: 'p1-w2-t3', text: 'Try <a href="https://python.useinstructor.com/" target="_blank" rel="noopener">Instructor library</a> — easier path to structured outputs (rapidly adopted in 2026 JDs)', hours: 1.5 },
         { id: 'p1-w2-t4', text: 'Function/tool calling — build a weather-fetch agent', hours: 2 },
         { id: 'p1-w2-t5', text: '<a href="https://docs.claude.com/en/docs/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic prompt caching</a> — biggest cost lever in 2026; implement on a long system prompt (context engineering)', hours: 1.5 },
