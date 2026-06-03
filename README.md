@@ -14,7 +14,7 @@ No build step and no framework — static HTML/CSS/JS hosted on GitHub Pages. Pr
 - **Live stats** — tasks done, total, days in, hours logged, overall %.
 - **Filters** (all / open only / done only) and expand/collapse-all.
 - **Per-task notes** you can jot inline.
-- **Artifacts sidebar** — a collapsible left panel listing the practice projects I've shipped, each linking to its repo and its mapped plan task with a live done-state. See [ai-pivot-practice](https://github.com/m67uzair/ai-pivot-practice).
+- **Artifacts sidebar** — a collapsible left panel that **discovers practice projects live** from [ai-pivot-practice](https://github.com/m67uzair/ai-pivot-practice): every top-level folder with a `README.md` becomes a card linking to its repo and its mapped plan task with a live done-state. No code change needed to add one — see [Artifacts convention](#artifacts-convention).
 - **Cloud sync** — sign in with a 6-digit email code to sync progress across devices.
 - **Export / Import / Reset** your progress as JSON.
 
@@ -25,6 +25,38 @@ Open the [live site](https://m67uzair.github.io/ai-pivot-tracker), or run it loc
 ```bash
 open index.html
 ```
+
+## Artifacts convention
+
+The Artifacts panel is populated **dynamically at runtime** — nothing about the practice projects is hardcoded in this repo. On load (and on **↻ refresh**) it:
+
+1. Lists the top-level folders of [ai-pivot-practice](https://github.com/m67uzair/ai-pivot-practice) via the GitHub trees API.
+2. Fetches each folder's `README.md` from `raw.githubusercontent.com`.
+3. Parses metadata from a hidden HTML-comment block at the top of that README.
+
+So a folder shows up as a card **only if it has a `README.md` in this format**:
+
+```markdown
+<!-- artifact
+emoji: 🧱
+tasks: p1-w2-t2
+stack: Python, openai, groq, Pydantic
+-->
+
+# Project Title
+
+The first paragraph after the H1 becomes the card description.
+```
+
+| Field    | Source                        | Required | Notes |
+|----------|-------------------------------|----------|-------|
+| `emoji`  | comment block                 | no       | defaults to 📦 |
+| `tasks`  | comment block                 | no       | comma-separated plan task IDs (e.g. `p1-w2-t2`); links the card to roadmap checkboxes with a live done-state |
+| `stack`  | comment block                 | no       | comma-separated tech tags shown as pills |
+| `name`   | first `# H1` heading          | no       | overridable via `name:` in the block |
+| `desc`   | first paragraph after the H1  | no       | overridable via `desc:` in the block |
+
+Results are cached in `localStorage` for 5 minutes; after pushing a new project, hit **↻ refresh** in the panel to force a live re-fetch (raw GitHub URLs are cache-busted to avoid stale CDN copies). The source repo is configured at the top of the artifacts section in `app.js` (`ARTIFACTS_OWNER` / `ARTIFACTS_NAME` / `ARTIFACTS_BRANCH`).
 
 ## How progress is stored
 
@@ -44,7 +76,7 @@ You can still **Export**/**Import** the raw JSON at any time.
 | File         | Purpose                                  |
 |--------------|------------------------------------------|
 | `index.html` | Markup and styles.                       |
-| `app.js`     | All application logic (plan data, rendering, storage, cloud sync). |
+| `app.js`     | All application logic (plan data, rendering, storage, cloud sync, dynamic artifacts fetch). |
 
 ### Supabase setup (for reference)
 
