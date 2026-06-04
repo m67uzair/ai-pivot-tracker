@@ -220,7 +220,8 @@ const PLAN = [
       { id: 'p2-d2', text: 'README states measurable eval metrics' },
       { id: 'p2-d3', text: 'LangSmith trace dashboard linked' },
       { id: 'p2-d4', text: 'GitHub Actions eval gate visible' },
-      { id: 'p2-d5', text: 'Blog post live (dev.to / Medium / personal site)' }
+      { id: 'p2-d5', text: 'Blog post live (dev.to / Medium / personal site)' },
+      { id: 'p2-d6', text: 'Demonstrates safe fallback — answers "I don\'t have that information" when the answer isn\'t in retrieved context (near-universal RAG take-home requirement)' }
     ]
   },
   resources: [
@@ -251,7 +252,7 @@ const PLAN = [
   number: 'B1',
   title: 'Buffer Week — Review + Application Engine',
   weeks: 'Wk 10',
-  hours: 12.5,
+  hours: 15.5,
   budget: '$0',
   isBuffer: true,
   summary: 'Catch up. Polish what you have. Start the parallel job-search engine. Most plans fail because they\'re too rigid; this buffer is non-negotiable.',
@@ -266,7 +267,8 @@ const PLAN = [
       { id: 'buf1-t4', text: 'Build target company list — 30 companies (PK / remote / Gulf segments)', hours: 1.5 },
       { id: 'buf1-t5', text: 'Set up an application tracker (Notion or sheet) — date, company, status, contact', hours: 1 },
       { id: 'buf1-t6', text: 'First mock system design — "Design a RAG-powered customer support tool" (record yourself)', hours: 1.5 },
-      { id: 'buf1-t7', text: 'ML vocabulary for LLM engineers (reading/video only, NO coding): supervised vs unsupervised, train/val/test split, overfitting, precision/recall/F1/AUC, what embeddings are, when classical ML beats an LLM, what fine-tuning actually does. Interview-readiness only. Watch <a href="https://www.youtube.com/watch?v=zjkBMFhNj_g" target="_blank" rel="noopener">Karpathy — Intro to LLMs (1h)</a> (note: 2023, still the best plain-English intro; concepts current even if model names are dated).', hours: 2.5 }
+      { id: 'buf1-t7', text: 'ML vocabulary for LLM engineers (reading/video only, NO coding): supervised vs unsupervised, train/val/test split, overfitting, precision/recall/F1/AUC, what embeddings are, when classical ML beats an LLM, what fine-tuning actually does. Interview-readiness only. Watch <a href="https://www.youtube.com/watch?v=zjkBMFhNj_g" target="_blank" rel="noopener">Karpathy — Intro to LLMs (1h)</a> (note: 2023, still the best plain-English intro; concepts current even if model names are dated).', hours: 2.5 },
+      { id: 'buf1-t8', text: '★ (Optional, market-dependent) Hands-on LoRA fine-tune of a small open model on a free Colab GPU — once, so you can speak to it. JD skill lists mention fine-tuning (~25%) but take-homes almost never test it; this is keyword/interview insurance, not core. Reference <a href="https://huggingface.co/docs/peft" target="_blank" rel="noopener">HuggingFace PEFT</a>', hours: 3 }
     ]
   }],
   project: {
@@ -429,8 +431,8 @@ const PLAN = [
         { id: 'p4-w17-t2', text: 'Migrate app to call Claude via Bedrock (not direct API)', hours: 2.5 },
         { id: 'p4-w17-t3', text: 'Deploy to ECS Fargate (or AppRunner)', hours: 2.5 },
         { id: 'p4-w17-t4', text: 'CloudWatch dashboards + cost alerts', hours: 1 },
-        { id: 'p4-w17-t5', text: '★ Kubernetes basics — <a href="https://killercoda.com/playgrounds/scenario/kubernetes" target="_blank" rel="noopener">Killercoda free playground</a> + deploy one pod (K8s is 27% of agentic JDs)', hours: 2.5 },
-        { id: 'p4-w17-t6', text: '★ Self-hosting peek — <a href="https://ollama.com/" target="_blank" rel="noopener">Ollama</a> local + try Llama or Qwen', hours: 1 },
+        { id: 'p4-w17-t5', text: 'Kubernetes basics — <a href="https://killercoda.com/playgrounds/scenario/kubernetes" target="_blank" rel="noopener">Killercoda free playground</a> + deploy one pod (K8s appears in ~27% of AI-eng JDs)', hours: 2.5 },
+        { id: 'p4-w17-t6', text: 'Self-hosting / local models — <a href="https://ollama.com/" target="_blank" rel="noopener">Ollama</a> local + run Llama or Qwen, then point one of your apps at it. Many take-home assignments mandate open-source / local models (no proprietary APIs) — be able to swap your LLM backend to local Ollama.', hours: 1.5 },
         { id: 'p4-w17-t7', text: 'Build ONE workflow in n8n (free tier) connecting an LLM to a trigger/action. Familiarity only — n8n/Zapier appear in Gulf/SME + freelance automation JDs. Do not go deeper; this is a fallback skill, not core. Follow <a href="https://docs.n8n.io/advanced-ai/intro-tutorial/" target="_blank" rel="noopener">n8n Docs — Build an AI workflow</a> (free Gemini-key template: <a href="https://n8n.io/workflows/6270-build-your-first-ai-agent/" target="_blank" rel="noopener">Build your first AI agent</a>)', hours: 2 }
       ]
     },
@@ -682,7 +684,7 @@ const TRACKS = [
       { id: 'ip-6', text: 'Mock interview 1 — Pramp or interviewing.io (general)' },
       { id: 'ip-7', text: 'Mock interview 2 — system design focus' },
       { id: 'ip-8', text: 'Mock interview 3 — AI-engineering-specific case' },
-      { id: 'ip-9', text: 'Take-home strategy — template approach for RAG/agent take-homes' },
+      { id: 'ip-9', text: 'Take-home strategy — template approach for RAG/agent take-homes — and ALWAYS start by building the eval harness before the main logic; \'didn\'t start with evals\' is cited as the #1 take-home red flag.' },
       { id: 'ip-10', text: 'Build 2 proactive take-homes (use as portfolio if asked)' },
       { id: 'ip-11', text: 'Salary negotiation prep — read Patrick McKenzie "Negotiate" + watch Haseeb Qureshi talk' },
       { id: 'ip-12', text: 'Levels.fyi research — 10 data points for your target roles' }
