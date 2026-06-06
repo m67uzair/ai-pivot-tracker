@@ -77,11 +77,11 @@ const PLAN = [
       focus: 'Structured outputs, tool calling, prompt caching',
       tasks: [
         { id: 'p1-w2-t1', text: 'Finish Anthropic tutorial — chapters 7–9', hours: 3 },
-        { id: 'p1-w2-t2', text: 'Implement Structured Outputs with Pydantic on the OpenAI Responses API (client.responses.parse + text_format=YourModel) — the model is constrained to your schema. Guide: <a href="https://platform.openai.com/docs/guides/structured-outputs" target="_blank" rel="noopener">OpenAI — Structured Outputs</a>. Know JSON mode exists as the older \'valid-JSON-only\' fallback, but default to Structured Outputs.', hours: 2 },
+        { id: 'p1-w2-t2', text: 'Implement Structured Outputs with Pydantic. Do it on <b>Groq</b> Chat Completions (free, real constrained-decoding strict mode via <code>gpt-oss-120b</code>) so you are not paying per call; the <a href="https://platform.openai.com/docs/guides/structured-outputs" target="_blank" rel="noopener">OpenAI Structured Outputs</a> guide is the canonical reference for the same concepts. Know JSON mode exists as the older valid-JSON-only fallback, but default to schema-constrained outputs.', hours: 2 },
         { id: 'p1-w2-t3', text: 'Try <a href="https://python.useinstructor.com/" target="_blank" rel="noopener">Instructor library</a> — easier path to structured outputs (rapidly adopted in 2026 JDs)', hours: 1.5 },
         { id: 'p1-w2-t4', text: 'Function/tool calling — build a weather-fetch agent', hours: 2 },
-        { id: 'p1-w2-t5', text: '<a href="https://docs.claude.com/en/docs/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic prompt caching</a> — biggest cost lever in 2026; implement on a long system prompt (context engineering)', hours: 1.5 },
-        { id: 'p1-w2-t6', text: '🔥 <b>Tokenizer Day</b> — work through <a href="https://github.com/rasbt/LLMs-from-scratch/blob/main/ch02/05_bpe-from-scratch/bpe-from-scratch.ipynb" target="_blank" rel="noopener">Raschka BPE-from-scratch notebook</a> end-to-end. Output: blog post "Why my Urdu prompts cost 3× English" → Gulf-market-relevant portfolio piece + interview talking point.', hours: 6 }
+        { id: 'p1-w2-t5', text: '<a href="https://docs.claude.com/en/docs/build-with-claude/prompt-caching" target="_blank" rel="noopener">Anthropic prompt caching</a> — biggest cost lever in 2026; implement on a long system prompt (context engineering). For free hands-on practice (Anthropic caching is cheap but not free), use Gemini 2.5 Flash implicit caching with a stable system prefix over ~2,100 tokens and watch <code>usage_metadata</code> for cached tokens — same stable-prefix-first discipline.', hours: 1.5 },
+        { id: 'p1-w2-t6', text: '🔥 <b>Tokenizer Day</b> — work through <a href="https://github.com/rasbt/LLMs-from-scratch/blob/main/ch02/05_bpe-from-scratch/bpe-from-scratch.ipynb" target="_blank" rel="noopener">Raschka BPE-from-scratch notebook</a> end-to-end (this is file <code>05</code> inside the <code>ch02</code> folder — you only need this one notebook; you do <b>not</b> need the rest of the book). Output: blog post "Why my Urdu prompts cost 3× English" → Gulf-market-relevant portfolio piece + interview talking point.', hours: 6 }
       ]
     },
     {
@@ -130,7 +130,7 @@ const PLAN = [
     { name: 'LiteLLM', url: 'https://docs.litellm.ai/', icon: '🔌', tags: ['free', 'core', 'new'], note: 'Provider abstraction. Appears in many production JDs.' },
     { name: 'Anthropic Prompt Caching Guide', url: 'https://docs.claude.com/en/docs/build-with-claude/prompt-caching', icon: '💰', tags: ['free', 'core', 'new'], note: 'Cost-reduction lever. Up to 90% savings on long contexts.' },
     { name: 'Chip Huyen — "AI Engineering" book (O\'Reilly, Dec 2024)', url: 'https://www.oreilly.com/library/view/ai-engineering/9781098166298/', icon: '📕', tags: ['paid', 'core'], note: 'The canonical book. Read alongside the plan.' },
-    { name: 'Raschka — Build a Large Language Model (From Scratch)', url: 'https://www.manning.com/books/build-a-large-language-model-from-scratch', icon: '📕', tags: ['paid', 'stretch', 'new'], note: 'Read Ch 2 (BPE) + Ch 3 (attention) only. Skip the rest unless ahead of schedule.' },
+    { name: 'Raschka — Build a Large Language Model (From Scratch)', url: 'https://www.manning.com/books/build-a-large-language-model-from-scratch', icon: '📕', tags: ['paid', 'stretch', 'new'], note: 'Optional — not required by any task. Tokenizer Day uses the free ch02/05 notebook and Self-Attention Day uses Raschka\'s free blog, which together cover Ch 2 + Ch 3. Buy this only if you want the full from-scratch book treatment.' },
     { name: 'LLMs-from-scratch notebooks (Raschka, free)', url: 'https://github.com/rasbt/LLMs-from-scratch', icon: '🔬', tags: ['free', 'new'], note: 'Free companion code. Use ch02/05_bpe-from-scratch for Tokenizer Day.' },
     { name: 'uv docs', url: 'https://docs.astral.sh/uv/', icon: '📦', tags: ['free'] },
     { name: 'SQLAlchemy 2.0 Tutorial', url: 'https://docs.sqlalchemy.org/en/20/tutorial/', icon: '🗄️', tags: ['free'] }
@@ -157,7 +157,7 @@ const PLAN = [
         { id: 'p2-w5-t3', text: 'Embeddings — try OpenAI text-embedding-3-small vs <a href="https://docs.cohere.com/docs/cohere-embed" target="_blank" rel="noopener">Cohere Embed v4</a> vs <a href="https://huggingface.co/BAAI/bge-large-en-v1.5" target="_blank" rel="noopener">BGE</a> — quality vs cost', hours: 2 },
         { id: 'p2-w5-t4', text: 'Install Chroma locally, ingest 5 PDFs you care about', hours: 2 },
         { id: 'p2-w5-t5', text: '3 chunking strategies — fixed, recursive, semantic. Compare retrieval quality.', hours: 2 },
-        { id: 'p2-w5-t6', text: '🔥 <b>Self-Attention Day</b> — read <a href="https://sebastianraschka.com/blog/2023/self-attention-from-scratch.html" target="_blank" rel="noopener">Raschka — Self-Attention from Scratch</a> + watch first 45min of <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener">Karpathy — Let\'s Build GPT</a>. Output: 500-word note in portfolio repo explaining attention in your own words, citing <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Vaswani et al.</a>', hours: 6 },
+        { id: 'p2-w5-t6', text: '🔥 <b>Self-Attention Day</b> — read <a href="https://sebastianraschka.com/blog/2023/self-attention-from-scratch.html" target="_blank" rel="noopener">Raschka — Self-Attention from Scratch</a> (this free blog post is sufficient on its own; the book\'s Ch 3 covers the same ground if you ever want more depth, but it is optional) + watch first 45min of <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener">Karpathy — Let\'s Build GPT</a>. Output: 500-word note in portfolio repo explaining attention in your own words, citing <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Vaswani et al.</a>', hours: 6 },
         { id: 'p2-w5-t7', text: 'Embedding theory primer — cosine vs dot product, dimensionality tradeoffs. <a href="https://www.pinecone.io/learn/vector-similarity/" target="_blank" rel="noopener">Pinecone Vector Similarity</a>', hours: 1 }
       ]
     },
@@ -188,7 +188,7 @@ const PLAN = [
       week: 8,
       focus: 'EVALS — the single most important week of this plan',
       tasks: [
-        { id: 'p2-w8-t1', text: 'Read <a href="https://hamel.dev/blog/posts/evals/" target="_blank" rel="noopener">Hamel — Your AI Product Needs Evals</a>', hours: 1 },
+        { id: 'p2-w8-t1', text: 'Read <a href="https://hamel.dev/blog/posts/evals/" target="_blank" rel="noopener">Hamel — Your AI Product Needs Evals</a> + <a href="https://eugeneyan.com/writing/evals/" target="_blank" rel="noopener">Eugene Yan — Task-Specific LLM Evals</a> (how to choose the right metric per task type)', hours: 1.5 },
         { id: 'p2-w8-t2', text: 'Read <a href="https://hamel.dev/blog/posts/evals-faq/" target="_blank" rel="noopener">Hamel + Shreya — LLM Evals FAQ</a> (Jan 2026, curated from 700+ engineers)', hours: 2 },
         { id: 'p2-w8-t3', text: 'Read <a href="https://hamel.dev/blog/posts/llm-judge/" target="_blank" rel="noopener">Hamel — LLM-as-a-Judge Complete Guide</a>', hours: 1 },
         { id: 'p2-w8-t4', text: 'Build a 50-question golden dataset for your docs', hours: 3 },
@@ -232,7 +232,6 @@ const PLAN = [
     { name: 'Eugene Yan — Task-Specific LLM Evals', url: 'https://eugeneyan.com/writing/evals/', icon: '📝', tags: ['free', 'core'] },
     { name: 'DeepLearning.AI — LangChain for LLM App Dev', url: 'https://www.deeplearning.ai/short-courses/langchain-for-llm-application-development/', icon: '🎓', tags: ['free', 'core'] },
     { name: 'DeepLearning.AI — LangChain: Chat with Your Data', url: 'https://www.deeplearning.ai/short-courses/langchain-chat-with-your-data/', icon: '🎓', tags: ['free', 'core'] },
-    { name: 'DeepLearning.AI × Arize — Evaluating AI Agents', url: 'https://www.deeplearning.ai/courses/evaluating-ai-agents', icon: '🎓', tags: ['free', 'core'] },
     { name: 'RAGAS framework', url: 'https://docs.ragas.io/', icon: '📏', tags: ['free', 'core', 'new'], note: 'Industry-standard RAG eval metrics out of the box.' },
     { name: 'unstructured.io', url: 'https://unstructured.io/', icon: '📄', tags: ['free', 'new'], note: 'Best free document parser for messy PDFs.' },
     { name: 'LlamaIndex docs', url: 'https://docs.llamaindex.ai/', icon: '📚', tags: ['free', 'new'], note: '~25% of postings list LlamaIndex. 30-min peek is enough.' },
@@ -294,64 +293,64 @@ const PLAN = [
   hours: 60,
   budget: '$30–50 (more LLM calls, Tavily, MCP testing)',
   summary: 'Multi-step agent with tool use, memory, budgets, and a custom MCP server. The 2026 hiring premium — and the area where most candidates are weakest.',
-  mvp: 'If short on time: must-do = W13 (MCP — the 16.9% of postings premium skill) + W14 (ship). Skim DSPy and CrewAI comparisons.',
+  mvp: 'If short on time: must-do = W14 (MCP — the premium skill) + W15 (ship). Skim DSPy and CrewAI comparisons.',
   weekBlocks: [
     {
       week: 11,
       focus: 'Agent fundamentals + framework comparison',
       tasks: [
-        { id: 'p3-w10-t1', text: 'Read <a href="https://www.anthropic.com/research/building-effective-agents" target="_blank" rel="noopener">Anthropic — Building Effective Agents</a>', hours: 2 },
-        { id: 'p3-w10-t2', text: '🔥 <b>Raw Agent Loop Day</b> — Build ~60-line ReAct loop with raw Anthropic SDK + tool_use (Thought → Action → Observation). No frameworks. Reference <a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">Yao et al. ReAct paper</a>. Push as `raw_agent_loop.py` to portfolio — this is your "explain agents to me" interview artifact. (agentic engineering)', hours: 6 },
-        { id: 'p3-w10-t3', text: 'HuggingFace <a href="https://huggingface.co/learn/agents-course" target="_blank" rel="noopener">Agents Course</a> — Unit 1', hours: 2 },
-        { id: 'p3-w10-t4', text: 'Read <a href="https://platform.openai.com/docs/guides/agents" target="_blank" rel="noopener">OpenAI Agents SDK docs</a>', hours: 1 },
-        { id: 'p3-w10-t5', text: '30-min hands-on with <a href="https://docs.crewai.com/" target="_blank" rel="noopener">CrewAI</a> + scan <a href="https://docs.ag2.ai/" target="_blank" rel="noopener">AutoGen</a> docs — know when each is named in JDs', hours: 1.5 }
+        { id: 'p3-w11-t1', text: 'Read <a href="https://www.anthropic.com/research/building-effective-agents" target="_blank" rel="noopener">Anthropic — Building Effective Agents</a>', hours: 2 },
+        { id: 'p3-w11-t2', text: '🔥 <b>Raw Agent Loop Day</b> — Build ~60-line ReAct loop with raw Anthropic SDK + tool_use (Thought → Action → Observation). No frameworks. Reference <a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">Yao et al. ReAct paper</a>. Push as `raw_agent_loop.py` to portfolio — this is your "explain agents to me" interview artifact. (agentic engineering)', hours: 6 },
+        { id: 'p3-w11-t3', text: 'HuggingFace <a href="https://huggingface.co/learn/agents-course" target="_blank" rel="noopener">Agents Course</a> — Unit 1', hours: 2 },
+        { id: 'p3-w11-t4', text: 'Read <a href="https://platform.openai.com/docs/guides/agents" target="_blank" rel="noopener">OpenAI Agents SDK docs</a>', hours: 1 },
+        { id: 'p3-w11-t5', text: '30-min hands-on with <a href="https://docs.crewai.com/" target="_blank" rel="noopener">CrewAI</a> + scan <a href="https://docs.ag2.ai/" target="_blank" rel="noopener">AutoGen</a> docs — know when each is named in JDs', hours: 1.5 }
       ]
     },
     {
       week: 12,
       focus: 'LangGraph state machines + budgets',
       tasks: [
-        { id: 'p3-w11-t1', text: 'DeepLearning.AI — <a href="https://www.deeplearning.ai/courses/ai-agents-in-langgraph" target="_blank" rel="noopener">AI Agents in LangGraph</a>', hours: 3 },
-        { id: 'p3-w11-t2', text: 'LangChain Academy — <a href="https://academy.langchain.com/courses/intro-to-langgraph" target="_blank" rel="noopener">Introduction to LangGraph</a>', hours: 4 },
-        { id: 'p3-w11-t3', text: 'Build simple LangGraph state graph with conditional routing', hours: 2 },
-        { id: 'p3-w11-t4', text: 'Add checkpoint persistence (SQLite checkpointer)', hours: 1.5 },
-        { id: 'p3-w11-t5', text: 'Agent budgets — implement token + step caps. Runaway agents = $$$', hours: 1 }
+        { id: 'p3-w12-t1', text: 'DeepLearning.AI — <a href="https://www.deeplearning.ai/courses/ai-agents-in-langgraph" target="_blank" rel="noopener">AI Agents in LangGraph</a>', hours: 3 },
+        { id: 'p3-w12-t2', text: 'LangChain Academy — <a href="https://academy.langchain.com/courses/intro-to-langgraph" target="_blank" rel="noopener">Introduction to LangGraph</a>', hours: 4 },
+        { id: 'p3-w12-t3', text: 'Build simple LangGraph state graph with conditional routing', hours: 2 },
+        { id: 'p3-w12-t4', text: 'Add checkpoint persistence (SQLite checkpointer)', hours: 1.5 },
+        { id: 'p3-w12-t5', text: 'Agent budgets — implement token + step caps. Runaway agents = $$$', hours: 1 }
       ]
     },
     {
       week: 13,
       focus: 'Memory, multi-agent, optimization paradigms',
       tasks: [
-        { id: 'p3-w12-t1', text: 'DeepLearning.AI — <a href="https://www.deeplearning.ai/courses/long-term-agentic-memory-with-langgraph" target="_blank" rel="noopener">Long-Term Agentic Memory</a>', hours: 2 },
-        { id: 'p3-w12-t2', text: 'LangChain Academy — <a href="https://academy.langchain.com/courses/deep-agents-with-langgraph" target="_blank" rel="noopener">Deep Agents with LangGraph</a>', hours: 3 },
-        { id: 'p3-w12-t3', text: 'Implement supervisor + worker multi-agent pattern', hours: 2.5 },
-        { id: 'p3-w12-t4', text: 'Human-in-the-loop interrupts with LangGraph', hours: 1.5 },
-        { id: 'p3-w12-t5', text: '<a href="https://dspy.ai/" target="_blank" rel="noopener">DSPy</a> 30-min intro — prompt optimization as compilation', hours: 1 }
+        { id: 'p3-w13-t1', text: 'DeepLearning.AI — <a href="https://www.deeplearning.ai/courses/long-term-agentic-memory-with-langgraph" target="_blank" rel="noopener">Long-Term Agentic Memory</a>', hours: 2 },
+        { id: 'p3-w13-t2', text: 'LangChain Academy — <a href="https://academy.langchain.com/courses/deep-agents-with-langgraph" target="_blank" rel="noopener">Deep Agents with LangGraph</a>', hours: 3 },
+        { id: 'p3-w13-t3', text: 'Implement supervisor + worker multi-agent pattern', hours: 2.5 },
+        { id: 'p3-w13-t4', text: 'Human-in-the-loop interrupts with LangGraph', hours: 1.5 },
+        { id: 'p3-w13-t5', text: '<a href="https://dspy.ai/" target="_blank" rel="noopener">DSPy</a> 30-min intro — prompt optimization as compilation', hours: 1 }
       ]
     },
     {
       week: 14,
       focus: 'MCP — the must-learn 2026 protocol',
       tasks: [
-        { id: 'p3-w13-t1', text: 'Read <a href="https://modelcontextprotocol.io/" target="_blank" rel="noopener">MCP spec overview</a> + <a href="https://modelcontextprotocol.io/docs/develop/build-server" target="_blank" rel="noopener">Quickstart</a>', hours: 1.5 },
-        { id: 'p3-w13-t2', text: 'Build first MCP server with FastMCP — exposes 2–3 tools', hours: 3 },
-        { id: 'p3-w13-t3', text: 'Connect MCP server to Claude Desktop + test', hours: 1.5 },
-        { id: 'p3-w13-t4', text: 'MCP client → call your server from a LangGraph agent', hours: 3 },
-        { id: 'p3-w13-t5', text: 'Read <a href="https://blog.modelcontextprotocol.io/" target="_blank" rel="noopener">MCP blog</a> — latest patterns (sampling, notifications)', hours: 1 },
-        { id: 'p3-w13-t6', text: 'Tool-call accuracy evals — measure when your agent picks the WRONG tool', hours: 1.5 }
+        { id: 'p3-w14-t1', text: 'Read <a href="https://modelcontextprotocol.io/" target="_blank" rel="noopener">MCP spec overview</a> + <a href="https://modelcontextprotocol.io/docs/develop/build-server" target="_blank" rel="noopener">Quickstart</a>', hours: 1.5 },
+        { id: 'p3-w14-t2', text: 'Build first MCP server with FastMCP — exposes 2–3 tools', hours: 3 },
+        { id: 'p3-w14-t3', text: 'Connect MCP server to Claude Desktop + test', hours: 1.5 },
+        { id: 'p3-w14-t4', text: 'MCP client → call your server from a LangGraph agent', hours: 3 },
+        { id: 'p3-w14-t5', text: 'Read <a href="https://blog.modelcontextprotocol.io/" target="_blank" rel="noopener">MCP blog</a> — latest patterns (sampling, notifications)', hours: 1 },
+        { id: 'p3-w14-t6', text: 'Tool-call accuracy evals — measure when your agent picks the WRONG tool. Framework: <a href="https://www.deeplearning.ai/courses/evaluating-ai-agents" target="_blank" rel="noopener">DeepLearning.AI × Arize — Evaluating AI Agents</a>', hours: 1.5 }
       ]
     },
     {
       week: 15,
       focus: 'Ship Project 3 + new agent surfaces',
       tasks: [
-        { id: 'p3-w14-t1', text: 'Build Research Agent — given topic, search via Tavily, summarize, cite', hours: 4 },
-        { id: 'p3-w14-t2', text: 'Add self-critique loop before final output', hours: 2 },
-        { id: 'p3-w14-t3', text: 'Custom MCP server for your Notion / PDF library', hours: 3 },
-        { id: 'p3-w14-t4', text: 'Test prompt injection + add guardrails', hours: 2 },
-        { id: 'p3-w14-t5', text: 'Deploy to <a href="https://fly.io" target="_blank" rel="noopener">Fly.io</a>, post blog + Show HN', hours: 2.5 },
-        { id: 'p3-w14-t6', text: '★ Browser-use agent primer — try <a href="https://www.browserbase.com/" target="_blank" rel="noopener">Browserbase</a> or Playwright + LLM (one of hottest 2026 categories)', hours: 1.5 },
-        { id: 'p3-w14-t7', text: '★ Voice agent primer — <a href="https://platform.openai.com/docs/guides/realtime" target="_blank" rel="noopener">OpenAI Realtime API</a> hello-world', hours: 1.5 }
+        { id: 'p3-w15-t1', text: 'Build Research Agent — given topic, search via Tavily, summarize, cite', hours: 4 },
+        { id: 'p3-w15-t2', text: 'Add self-critique loop before final output', hours: 2 },
+        { id: 'p3-w15-t3', text: 'Custom MCP server for your Notion / PDF library', hours: 3 },
+        { id: 'p3-w15-t4', text: 'Test prompt injection + add guardrails', hours: 2 },
+        { id: 'p3-w15-t5', text: 'Deploy to <a href="https://fly.io" target="_blank" rel="noopener">Fly.io</a>, post blog + Show HN', hours: 2.5 },
+        { id: 'p3-w15-t6', text: '★ Browser-use agent primer — try <a href="https://www.browserbase.com/" target="_blank" rel="noopener">Browserbase</a> or Playwright + LLM (one of hottest 2026 categories)', hours: 1.5 },
+        { id: 'p3-w15-t7', text: '★ Voice agent primer — <a href="https://platform.openai.com/docs/guides/realtime" target="_blank" rel="noopener">OpenAI Realtime API</a> hello-world', hours: 1.5 }
       ]
     }
   ],
@@ -373,6 +372,7 @@ const PLAN = [
     { name: 'LangChain Academy — Introduction to LangGraph', url: 'https://academy.langchain.com/courses/intro-to-langgraph', icon: '🎓', tags: ['free', 'core'] },
     { name: 'LangChain Academy — Deep Agents', url: 'https://academy.langchain.com/courses/deep-agents-with-langgraph', icon: '🎓', tags: ['free', 'core'] },
     { name: 'HuggingFace Agents Course (+ free cert)', url: 'https://huggingface.co/learn/agents-course', icon: '🎓', tags: ['free', 'core'] },
+    { name: 'DeepLearning.AI × Arize — Evaluating AI Agents', url: 'https://www.deeplearning.ai/courses/evaluating-ai-agents', icon: '🎓', tags: ['free', 'core'] },
     { name: 'MCP Official Site', url: 'https://modelcontextprotocol.io/', icon: '🔌', tags: ['free', 'core'], note: 'Under Linux Foundation (Dec 2025). 97M monthly SDK downloads.' },
     { name: 'MCP Blog', url: 'https://blog.modelcontextprotocol.io/', icon: '📰', tags: ['free'] },
     { name: 'OpenAI Agents SDK', url: 'https://platform.openai.com/docs/guides/agents', icon: '📖', tags: ['free'] },
@@ -396,58 +396,58 @@ const PLAN = [
   hours: 57.5,
   budget: '$50–80 (AWS Bedrock, RDS, ECS, Redis)',
   summary: 'Take one project and harden it for enterprise. Add observability, auth, rate-limits, Kubernetes basics, security depth, async jobs, and AWS Bedrock. Start MLA-C01 prep.',
-  mvp: 'If short on time: must-do = W15 (containerization + observability) + W17 (Bedrock + cloud deploy). Defer K8s, load testing, self-hosting.',
+  mvp: 'If short on time: must-do = W16 (containerization + observability) + W18 (Bedrock + cloud deploy). Defer K8s, load testing, self-hosting.',
   weekBlocks: [
     {
       week: 16,
       focus: 'Containerization + observability + prompt versioning',
       tasks: [
-        { id: 'p4-w15-t1', text: 'Multi-stage Dockerfile for FastAPI (slim final image)', hours: 1.5 },
-        { id: 'p4-w15-t2', text: 'Structured JSON logging (`loguru` or `structlog`)', hours: 1.5 },
-        { id: 'p4-w15-t3', text: 'Prometheus metrics — `prometheus-fastapi-instrumentator`', hours: 1.5 },
-        { id: 'p4-w15-t4', text: 'LangSmith production traces with project + env tags', hours: 1.5 },
-        { id: 'p4-w15-t5', text: 'Read <a href="https://github.com/fastapi/full-stack-fastapi-template" target="_blank" rel="noopener">Full-Stack FastAPI Template</a> — copy patterns', hours: 2 },
-        { id: 'p4-w15-t6', text: 'Prompt versioning — set up <a href="https://docs.langchain.com/langsmith/prompt-engineering" target="_blank" rel="noopener">LangSmith Prompt Hub</a> or PromptLayer', hours: 1.5 },
-        { id: 'p4-w15-t7', text: 'Concept primer: vLLM / Ollama / TGI — what self-hosted LLM inference is and when teams use it (reading only, no setup). For interview literacy; appears in senior ML-platform JDs you won\'t target but should recognize. Read <a href="https://www.buildwithmatija.com/blog/vllm-vs-ollama-vs-tgi-choose-llm-inference-engine" target="_blank" rel="noopener">vLLM vs Ollama vs TGI (2026)</a>', hours: 0.5 }
+        { id: 'p4-w16-t1', text: 'Multi-stage Dockerfile for FastAPI (slim final image)', hours: 1.5 },
+        { id: 'p4-w16-t2', text: 'Structured JSON logging (`loguru` or `structlog`)', hours: 1.5 },
+        { id: 'p4-w16-t3', text: 'Prometheus metrics — `prometheus-fastapi-instrumentator`', hours: 1.5 },
+        { id: 'p4-w16-t4', text: 'LangSmith production traces with project + env tags', hours: 1.5 },
+        { id: 'p4-w16-t5', text: 'Read <a href="https://github.com/fastapi/full-stack-fastapi-template" target="_blank" rel="noopener">Full-Stack FastAPI Template</a> — copy patterns', hours: 2 },
+        { id: 'p4-w16-t6', text: 'Prompt versioning — set up <a href="https://docs.langchain.com/langsmith/prompt-engineering" target="_blank" rel="noopener">LangSmith Prompt Hub</a> or PromptLayer', hours: 1.5 },
+        { id: 'p4-w16-t7', text: 'Concept primer: vLLM / Ollama / TGI — what self-hosted LLM inference is and when teams use it (reading only, no setup). For interview literacy; appears in senior ML-platform JDs you won\'t target but should recognize. Read <a href="https://www.buildwithmatija.com/blog/vllm-vs-ollama-vs-tgi-choose-llm-inference-engine" target="_blank" rel="noopener">vLLM vs Ollama vs TGI (2026)</a>', hours: 0.5 }
       ]
     },
     {
       week: 17,
       focus: 'Auth, rate-limits, caching, async jobs',
       tasks: [
-        { id: 'p4-w16-t1', text: 'JWT auth in FastAPI (`fastapi-users` or custom)', hours: 2.5 },
-        { id: 'p4-w16-t2', text: 'Per-user rate limiting with Redis (`slowapi`)', hours: 2 },
-        { id: 'p4-w16-t3', text: 'Semantic caching — Redis + embedding similarity', hours: 2.5 },
-        { id: 'p4-w16-t4', text: 'Secrets via env + AWS Secrets Manager', hours: 1.5 },
-        { id: 'p4-w16-t5', text: 'Async job queue — <a href="https://docs.celeryq.dev/" target="_blank" rel="noopener">Celery</a> + Redis for long-running LLM jobs', hours: 2 },
-        { id: 'p4-w16-t6', text: 'Log token usage + dollar cost per request; add alerting on cost outliers. 2026 JDs increasingly state \'you own quality, latency, and cost\' — make cost a first-class metric in your app. Start with <a href="https://www.kdnuggets.com/the-beginners-guide-to-tracking-token-usage-in-llm-apps" target="_blank" rel="noopener">KDnuggets — Tracking Token Usage in LLM Apps</a>; for a 1-line proxy approach see <a href="https://docs.helicone.ai/guides/cookbooks/cost-tracking" target="_blank" rel="noopener">Helicone — Cost Tracking</a>', hours: 2 }
+        { id: 'p4-w17-t1', text: 'JWT auth in FastAPI (`fastapi-users` or custom)', hours: 2.5 },
+        { id: 'p4-w17-t2', text: 'Per-user rate limiting with Redis (`slowapi`)', hours: 2 },
+        { id: 'p4-w17-t3', text: 'Semantic caching — Redis + embedding similarity', hours: 2.5 },
+        { id: 'p4-w17-t4', text: 'Secrets via env + AWS Secrets Manager', hours: 1.5 },
+        { id: 'p4-w17-t5', text: 'Async job queue — <a href="https://docs.celeryq.dev/" target="_blank" rel="noopener">Celery</a> + Redis for long-running LLM jobs', hours: 2 },
+        { id: 'p4-w17-t6', text: 'Log token usage + dollar cost per request; add alerting on cost outliers. 2026 JDs increasingly state \'you own quality, latency, and cost\' — make cost a first-class metric in your app. Start with <a href="https://www.kdnuggets.com/the-beginners-guide-to-tracking-token-usage-in-llm-apps" target="_blank" rel="noopener">KDnuggets — Tracking Token Usage in LLM Apps</a>; for a 1-line proxy approach see <a href="https://docs.helicone.ai/guides/cookbooks/cost-tracking" target="_blank" rel="noopener">Helicone — Cost Tracking</a>', hours: 2 }
       ]
     },
     {
       week: 18,
       focus: 'AWS Bedrock + Kubernetes basics + self-hosting peek',
       tasks: [
-        { id: 'p4-w17-t1', text: 'Complete <a href="https://catalog.workshops.aws/building-with-amazon-bedrock" target="_blank" rel="noopener">AWS Bedrock workshop</a>', hours: 4 },
-        { id: 'p4-w17-t2', text: 'Migrate app to call Claude via Bedrock (not direct API)', hours: 2.5 },
-        { id: 'p4-w17-t3', text: 'Deploy to ECS Fargate (or AppRunner)', hours: 2.5 },
-        { id: 'p4-w17-t4', text: 'CloudWatch dashboards + cost alerts', hours: 1 },
-        { id: 'p4-w17-t5', text: 'Kubernetes basics — <a href="https://killercoda.com/playgrounds/scenario/kubernetes" target="_blank" rel="noopener">Killercoda free playground</a> + deploy one pod (K8s appears in ~27% of AI-eng JDs)', hours: 2.5 },
-        { id: 'p4-w17-t6', text: 'Self-hosting / local models — <a href="https://ollama.com/" target="_blank" rel="noopener">Ollama</a> local + run Llama or Qwen, then point one of your apps at it. Many take-home assignments mandate open-source / local models (no proprietary APIs) — be able to swap your LLM backend to local Ollama.', hours: 1.5 },
-        { id: 'p4-w17-t7', text: 'Build ONE workflow in n8n (free tier) connecting an LLM to a trigger/action. Familiarity only — n8n/Zapier appear in Gulf/SME + freelance automation JDs. Do not go deeper; this is a fallback skill, not core. Follow <a href="https://docs.n8n.io/advanced-ai/intro-tutorial/" target="_blank" rel="noopener">n8n Docs — Build an AI workflow</a> (free Gemini-key template: <a href="https://n8n.io/workflows/6270-build-your-first-ai-agent/" target="_blank" rel="noopener">Build your first AI agent</a>)', hours: 2 }
+        { id: 'p4-w18-t1', text: 'Complete <a href="https://catalog.workshops.aws/building-with-amazon-bedrock" target="_blank" rel="noopener">AWS Bedrock workshop</a>', hours: 4 },
+        { id: 'p4-w18-t2', text: 'Migrate app to call Claude via Bedrock (not direct API)', hours: 2.5 },
+        { id: 'p4-w18-t3', text: 'Deploy to ECS Fargate (or AppRunner)', hours: 2.5 },
+        { id: 'p4-w18-t4', text: 'CloudWatch dashboards + cost alerts', hours: 1 },
+        { id: 'p4-w18-t5', text: 'Kubernetes basics — <a href="https://killercoda.com/playgrounds/scenario/kubernetes" target="_blank" rel="noopener">Killercoda free playground</a> + deploy one pod (K8s appears in ~27% of AI-eng JDs)', hours: 2.5 },
+        { id: 'p4-w18-t6', text: 'Self-hosting / local models — <a href="https://ollama.com/" target="_blank" rel="noopener">Ollama</a> local + run Llama or Qwen, then point one of your apps at it. Many take-home assignments mandate open-source / local models (no proprietary APIs) — be able to swap your LLM backend to local Ollama.', hours: 1.5 },
+        { id: 'p4-w18-t7', text: 'Build ONE workflow in n8n (free tier) connecting an LLM to a trigger/action. Familiarity only — n8n/Zapier appear in Gulf/SME + freelance automation JDs. Do not go deeper; this is a fallback skill, not core. Follow <a href="https://docs.n8n.io/advanced-ai/intro-tutorial/" target="_blank" rel="noopener">n8n Docs — Build an AI workflow</a> (free Gemini-key template: <a href="https://n8n.io/workflows/6270-build-your-first-ai-agent/" target="_blank" rel="noopener">Build your first AI agent</a>)', hours: 2 }
       ]
     },
     {
       week: 19,
       focus: 'Eval-gated CI/CD + security + load testing + cert prep',
       tasks: [
-        { id: 'p4-w18-t1', text: 'GitHub Actions workflow runs evals on every PR', hours: 2 },
-        { id: 'p4-w18-t2', text: 'Red-team prompt-injection eval set', hours: 2 },
-        { id: 'p4-w18-t3', text: 'Blue-green deploy (or canary) on ECS', hours: 2.5 },
-        { id: 'p4-w18-t4', text: 'Start AWS MLA-C01 prep — Stephane Maarek or Adrian Cantrill course', hours: 2.5 },
-        { id: 'p4-w18-t5', text: 'README section: "What I\'d improve at 10× scale"', hours: 1 },
-        { id: 'p4-w18-t6', text: 'Load testing — <a href="https://locust.io/" target="_blank" rel="noopener">Locust</a> on your endpoint, document breakpoints', hours: 2 },
-        { id: 'p4-w18-t7', text: 'Security deep-dive — PII redaction (<a href="https://microsoft.github.io/presidio/" target="_blank" rel="noopener">Presidio</a>), output filtering, prompt injection at scale', hours: 2.5 },
-        { id: 'p4-w18-t8', text: 'Add a human_review_required flag pattern to your agent — gate high-stakes actions for human approval before execution. Signals human-in-the-loop design (required in healthcare/regulated AI JDs). Reference <a href="https://docs.langchain.com/oss/python/langchain/human-in-the-loop" target="_blank" rel="noopener">LangChain — Human-in-the-Loop</a>', hours: 1 }
+        { id: 'p4-w19-t1', text: 'GitHub Actions workflow runs evals on every PR', hours: 2 },
+        { id: 'p4-w19-t2', text: 'Red-team prompt-injection eval set', hours: 2 },
+        { id: 'p4-w19-t3', text: 'Blue-green deploy (or canary) on ECS', hours: 2.5 },
+        { id: 'p4-w19-t4', text: 'Start AWS MLA-C01 prep — Stephane Maarek or Adrian Cantrill course', hours: 2.5 },
+        { id: 'p4-w19-t5', text: 'README section: "What I\'d improve at 10× scale"', hours: 1 },
+        { id: 'p4-w19-t6', text: 'Load testing — <a href="https://locust.io/" target="_blank" rel="noopener">Locust</a> on your endpoint, document breakpoints', hours: 2 },
+        { id: 'p4-w19-t7', text: 'Security deep-dive — PII redaction (<a href="https://microsoft.github.io/presidio/" target="_blank" rel="noopener">Presidio</a>), output filtering, prompt injection at scale', hours: 2.5 },
+        { id: 'p4-w19-t8', text: 'Add a human_review_required flag pattern to your agent — gate high-stakes actions for human approval before execution. Signals human-in-the-loop design (required in healthcare/regulated AI JDs). Reference <a href="https://docs.langchain.com/oss/python/langchain/human-in-the-loop" target="_blank" rel="noopener">LangChain — Human-in-the-Loop</a>', hours: 1 }
       ]
     }
   ],
@@ -496,7 +496,7 @@ const PLAN = [
       { id: 'buf2-t1', text: 'Sit AWS MLA-C01 exam (book it 2 weeks in advance)', hours: 3 },
       { id: 'buf2-t2', text: 'Polish all 4 portfolio projects — READMEs, demos, screenshots, deploy badges', hours: 3 },
       { id: 'buf2-t3', text: 'Final resume pass — 2 versions (PK/Gulf, US-remote). Get feedback from 2 senior engineers.', hours: 1.5 },
-      { id: 'buf2-t4', text: 'Run 3 mock interviews — <a href="https://www.tryexponent.com/practice" target="_blank" rel="noopener">Pramp</a> or <a href="https://interviewing.io/" target="_blank" rel="noopener">interviewing.io</a>', hours: 3 },
+      { id: 'buf2-t4', text: 'Run 3 mock interviews — <a href="https://www.tryexponent.com/practice" target="_blank" rel="noopener">Exponent (formerly Pramp)</a> or <a href="https://interviewing.io/" target="_blank" rel="noopener">interviewing.io</a>', hours: 3 },
       { id: 'buf2-t5', text: 'System design practice — design a customer support agent at scale (write it up)', hours: 1.5 }
     ]
   }],
@@ -525,54 +525,54 @@ const PLAN = [
   hours: 50,
   budget: '$80–120 (everything stays on + Flutter dev account + Stripe)',
   summary: 'Your unfair advantage. A Flutter app powered by your AI backend with on-device fallback, voice/vision, payments, and ASO. Ship to TestFlight + Play Store internal.',
-  mvp: 'If short on time: must-do = W19 (pick + design) + W22 (ship to TestFlight). Drop voice/vision and Apple Foundation Models — keep them as stretch.',
+  mvp: 'If short on time: must-do = W21 (pick + design) + W24 (ship to TestFlight). Drop voice/vision and Apple Foundation Models — keep them as stretch.',
   weekBlocks: [
     {
       week: 21,
       focus: 'Pick + design + connect backend',
       tasks: [
-        { id: 'p5-w19-t1', text: 'Pick ONE: (a) Flutter Dev Assistant ★recommended, (b) Doc scanner that thinks, (c) Interview prep AI, (d) Urdu/Arabic voice journaling', hours: 1 },
-        { id: 'p5-w19-t2', text: 'Write 1-page product spec — user, problem, MVP scope', hours: 2 },
-        { id: 'p5-w19-t3', text: 'Sketch UI in Figma or pen-and-paper', hours: 2 },
-        { id: 'p5-w19-t4', text: 'Set up Flutter project + connect to Phase 4 backend', hours: 2 },
-        { id: 'p5-w19-t5', text: 'Read <a href="https://dasroot.net/posts/2026/03/flutter-local-llms-privacy-first-mobile-ai/" target="_blank" rel="noopener">Flutter + Local LLMs (March 2026)</a>', hours: 1 },
-        { id: 'p5-w19-t6', text: 'Set up <a href="https://posthog.com/" target="_blank" rel="noopener">PostHog</a> free analytics', hours: 0.5 }
+        { id: 'p5-w21-t1', text: 'Pick ONE: (a) Flutter Dev Assistant ★recommended, (b) Doc scanner that thinks, (c) Interview prep AI, (d) Urdu/Arabic voice journaling', hours: 1 },
+        { id: 'p5-w21-t2', text: 'Write 1-page product spec — user, problem, MVP scope', hours: 2 },
+        { id: 'p5-w21-t3', text: 'Sketch UI in Figma or pen-and-paper', hours: 2 },
+        { id: 'p5-w21-t4', text: 'Set up Flutter project + connect to Phase 4 backend', hours: 2 },
+        { id: 'p5-w21-t5', text: 'Read <a href="https://dasroot.net/posts/2026/03/flutter-local-llms-privacy-first-mobile-ai/" target="_blank" rel="noopener">Flutter + Local LLMs (March 2026)</a>', hours: 1 },
+        { id: 'p5-w21-t6', text: 'Set up <a href="https://posthog.com/" target="_blank" rel="noopener">PostHog</a> free analytics', hours: 0.5 }
       ]
     },
     {
       week: 22,
       focus: 'Core AI features + on-device + voice/vision',
       tasks: [
-        { id: 'p5-w20-t1', text: 'Integrate <a href="https://pub.dev/packages/flutter_ai_toolkit" target="_blank" rel="noopener">flutter_ai_toolkit</a> for chat UI', hours: 3 },
-        { id: 'p5-w20-t2', text: 'Connect to Claude/GPT via your FastAPI backend with streaming', hours: 3 },
-        { id: 'p5-w20-t3', text: 'On-device fallback via <a href="https://firebase.google.com/docs/ai-logic" target="_blank" rel="noopener">Firebase AI Logic</a> (Gemini Nano)', hours: 3 },
-        { id: 'p5-w20-t4', text: '★ Camera + vision input — pick photo, send to Claude vision API', hours: 2 },
-        { id: 'p5-w20-t5', text: '★ Voice input — Whisper API via backend (or on-device Whisper.cpp)', hours: 2 }
+        { id: 'p5-w22-t1', text: 'Integrate <a href="https://pub.dev/packages/flutter_ai_toolkit" target="_blank" rel="noopener">flutter_ai_toolkit</a> for chat UI', hours: 3 },
+        { id: 'p5-w22-t2', text: 'Connect to Claude/GPT via your FastAPI backend with streaming', hours: 3 },
+        { id: 'p5-w22-t3', text: 'On-device fallback via <a href="https://firebase.google.com/docs/ai-logic" target="_blank" rel="noopener">Firebase AI Logic</a> (Gemini Nano)', hours: 3 },
+        { id: 'p5-w22-t4', text: '★ Camera + vision input — pick photo, send to Claude vision API', hours: 2 },
+        { id: 'p5-w22-t5', text: '★ Voice input — Whisper API via backend (or on-device Whisper.cpp)', hours: 2 }
       ]
     },
     {
       week: 23,
       focus: 'Auth, payments, notifications, polish',
       tasks: [
-        { id: 'p5-w21-t1', text: 'Sign-in with Google (Firebase Auth)', hours: 2 },
-        { id: 'p5-w21-t2', text: 'Stripe or Paddle subscription ($9/mo plan)', hours: 4 },
-        { id: 'p5-w21-t3', text: 'Per-user rate limit (free 5/day, paid unlimited)', hours: 2 },
-        { id: 'p5-w21-t4', text: 'Polish UI — animations, empty/error states', hours: 2 },
-        { id: 'p5-w21-t5', text: '★ Push notifications — FCM + AI summary trigger', hours: 2 }
+        { id: 'p5-w23-t1', text: 'Sign-in with Google (Firebase Auth)', hours: 2 },
+        { id: 'p5-w23-t2', text: 'Stripe or Paddle subscription ($9/mo plan)', hours: 4 },
+        { id: 'p5-w23-t3', text: 'Per-user rate limit (free 5/day, paid unlimited)', hours: 2 },
+        { id: 'p5-w23-t4', text: 'Polish UI — animations, empty/error states', hours: 2 },
+        { id: 'p5-w23-t5', text: '★ Push notifications — FCM + AI summary trigger', hours: 2 }
       ]
     },
     {
       week: 24,
       focus: 'Ship + launch + recruit users',
       tasks: [
-        { id: 'p5-w22-t1', text: 'Submit to TestFlight (iOS internal testing)', hours: 2 },
-        { id: 'p5-w22-t2', text: 'Submit to Play Store Internal Track', hours: 2 },
-        { id: 'p5-w22-t3', text: '3-min Loom demo for app store + portfolio', hours: 2 },
-        { id: 'p5-w22-t4', text: 'Launch tweet thread + LinkedIn post + Show HN', hours: 2 },
-        { id: 'p5-w22-t5', text: 'Get at least 1 paying/sign-up user from outside your network', hours: 3 },
-        { id: 'p5-w22-t6', text: 'Update resume + LinkedIn headline with flagship', hours: 1 },
-        { id: 'p5-w22-t7', text: 'ASO basics — keywords, screenshots, app description', hours: 1.5 },
-        { id: 'p5-w22-t8', text: 'TestFlight beta recruiting — post in r/FlutterDev + Flutter Discord', hours: 1 }
+        { id: 'p5-w24-t1', text: 'Submit to TestFlight (iOS internal testing)', hours: 2 },
+        { id: 'p5-w24-t2', text: 'Submit to Play Store Internal Track', hours: 2 },
+        { id: 'p5-w24-t3', text: '3-min Loom demo for app store + portfolio', hours: 2 },
+        { id: 'p5-w24-t4', text: 'Launch tweet thread + LinkedIn post + Show HN', hours: 2 },
+        { id: 'p5-w24-t5', text: 'Get at least 1 paying/sign-up user from outside your network', hours: 3 },
+        { id: 'p5-w24-t6', text: 'Update resume + LinkedIn headline with flagship', hours: 1 },
+        { id: 'p5-w24-t7', text: 'ASO basics — keywords, screenshots, app description', hours: 1.5 },
+        { id: 'p5-w24-t8', text: 'TestFlight beta recruiting — post in r/FlutterDev + Flutter Discord', hours: 1 }
       ]
     }
   ],
@@ -672,7 +672,7 @@ const TRACKS = [
     id: 'tr-interview',
     title: 'Interview Prep',
     emoji: '💼',
-    note: 'Starts W10. Mostly weekends. NEW in v1.1.',
+    note: 'Starts W10. Mostly weekends.',
     color: '#f472b6',
     activeWeeks: Array.from({length:15},(_,i)=>i+10),
     tasks: [
@@ -904,6 +904,42 @@ function updateSyncUI() {
   }
 }
 
+// One-time migration after the P3/P4/P5 task-ID week renumber.
+// Remaps existing ticks + notes by the SAME offset the IDs were bumped by
+// (p3 +1, p4 +1, p5 +2), so progress lands on the same task text; then prunes
+// orphaned/false keys. Guarded by a flag so re-running can't double-shift.
+// Run ONCE from the console: migrateAndConsolidate()
+function migrateAndConsolidate() {
+  const remapId = (id) => {
+    const m = id.match(/^(p[345])-w(\d+)-(t\d+)$/);
+    if (!m) return id;
+    const off = m[1] === 'p5' ? 2 : 1;
+    return `${m[1]}-w${Number(m[2]) + off}-${m[3]}`;
+  };
+  const remapKeys = (obj) => {
+    const out = {};
+    for (const [k, v] of Object.entries(obj || {})) out[remapId(k)] = v;
+    return out;
+  };
+  if (!state._idMigrationV2) {
+    state.tasks = remapKeys(state.tasks);
+    state.notes = remapKeys(state.notes);
+    state._idMigrationV2 = true;
+  }
+  // Consolidate: drop keys not in the current valid set, and drop `false` ticks.
+  const valid = new Set(allTaskIds());
+  for (const k of Object.keys(state.tasks)) {
+    if (!valid.has(k) || state.tasks[k] !== true) delete state.tasks[k];
+  }
+  for (const k of Object.keys(state.notes || {})) {
+    if (!valid.has(k)) delete state.notes[k];
+  }
+  saveStateNow();
+  fullRender();
+  return { ticks: Object.keys(state.tasks).length, notes: Object.keys(state.notes || {}).length };
+}
+window.migrateAndConsolidate = migrateAndConsolidate;
+
 const SYNC_INPUT_STYLE = 'width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-soft);color:var(--text);font-size:14px;margin-top:8px;box-sizing:border-box';
 
 window.openSyncModal = async function() {
@@ -966,6 +1002,13 @@ function phaseTaskIds(phaseId) {
   phase.weekBlocks.forEach(wb => wb.tasks.forEach(t => ids.push(t.id)));
   phase.project.deliverables.forEach(d => ids.push(d.id));
   return ids;
+}
+function phaseHours(phase) {
+  let total = 0;
+  phase.weekBlocks.forEach(wb => wb.tasks.forEach(t => {
+    if (t.hours) total += t.hours;
+  }));
+  return total;
 }
 function trackTaskIds(trackId) {
   const t = TRACKS.find(x => x.id === trackId);
@@ -1278,7 +1321,7 @@ function renderResource(r) {
   body.appendChild(name);
   if (r.tags && r.tags.length) {
     const meta = el('div', { class: 'resource-meta' });
-    r.tags.forEach(tag => meta.appendChild(el('span', { class: 'tag ' + tag }, [tag])));
+    r.tags.filter(t => t !== 'new').forEach(tag => meta.appendChild(el('span', { class: 'tag ' + tag }, [tag])));
     body.appendChild(meta);
   }
   if (r.note) body.appendChild(el('div', { class: 'resource-note' }, [r.note]));
@@ -1309,7 +1352,7 @@ function renderPhase(phase) {
   meta.appendChild(el('div', { class: 'phase-name' }, [phase.title]));
   const badges = el('div', { class: 'phase-badges' });
   badges.appendChild(el('span', { class: 'badge weeks' }, [phase.weeks]));
-  badges.appendChild(el('span', { class: 'badge hours' }, [`~${phase.hours}h`]));
+  badges.appendChild(el('span', { class: 'badge hours' }, [`~${phaseHours(phase)}h`]));
   if (phase.budget) badges.appendChild(el('span', { class: 'badge budget' }, [phase.budget]));
   const taskBadge = el('span', { class: 'badge', 'data-phase-tasks': phase.id }, ['0/0 tasks']);
   badges.appendChild(taskBadge);
