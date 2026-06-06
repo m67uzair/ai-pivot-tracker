@@ -904,42 +904,6 @@ function updateSyncUI() {
   }
 }
 
-// One-time migration after the P3/P4/P5 task-ID week renumber.
-// Remaps existing ticks + notes by the SAME offset the IDs were bumped by
-// (p3 +1, p4 +1, p5 +2), so progress lands on the same task text; then prunes
-// orphaned/false keys. Guarded by a flag so re-running can't double-shift.
-// Run ONCE from the console: migrateAndConsolidate()
-function migrateAndConsolidate() {
-  const remapId = (id) => {
-    const m = id.match(/^(p[345])-w(\d+)-(t\d+)$/);
-    if (!m) return id;
-    const off = m[1] === 'p5' ? 2 : 1;
-    return `${m[1]}-w${Number(m[2]) + off}-${m[3]}`;
-  };
-  const remapKeys = (obj) => {
-    const out = {};
-    for (const [k, v] of Object.entries(obj || {})) out[remapId(k)] = v;
-    return out;
-  };
-  if (!state._idMigrationV2) {
-    state.tasks = remapKeys(state.tasks);
-    state.notes = remapKeys(state.notes);
-    state._idMigrationV2 = true;
-  }
-  // Consolidate: drop keys not in the current valid set, and drop `false` ticks.
-  const valid = new Set(allTaskIds());
-  for (const k of Object.keys(state.tasks)) {
-    if (!valid.has(k) || state.tasks[k] !== true) delete state.tasks[k];
-  }
-  for (const k of Object.keys(state.notes || {})) {
-    if (!valid.has(k)) delete state.notes[k];
-  }
-  saveStateNow();
-  fullRender();
-  return { ticks: Object.keys(state.tasks).length, notes: Object.keys(state.notes || {}).length };
-}
-window.migrateAndConsolidate = migrateAndConsolidate;
-
 const SYNC_INPUT_STYLE = 'width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-soft);color:var(--text);font-size:14px;margin-top:8px;box-sizing:border-box';
 
 window.openSyncModal = async function() {
