@@ -755,6 +755,7 @@ const TIMELINE_ROWS = [
 const STORAGE_KEY = 'pivot-tracker-state-v1';
 let state = {
   tasks: {},
+  taskMeta: {},
   notes: {},
   expanded: {},
   startedAt: null,
@@ -1249,9 +1250,318 @@ function scrollToSection(id, type) {
 // =============== TASK/PHASE/TRACK RENDER ======================
 // ==============================================================
 
+// ==============================================================
+// =============== TASK TIMING (interval model) =================
+// ==============================================================
+// state.taskMeta[id] = { intervals: [{s, e}], completedAt }
+// status: done (state.tasks[id]===true) | running (open interval) |
+//         paused (closed intervals, not done) | todo (nothing)
+function taskMetaOf(id) { return state.taskMeta && state.taskMeta[id]; }
+function ensureMeta(id) {
+  state.taskMeta = state.taskMeta || {};
+  if (!state.taskMeta[id]) state.taskMeta[id] = { intervals: [], completedAt: null };
+  return state.taskMeta[id];
+}
+function hasTiming(id) { const m = taskMetaOf(id); return !!(m && m.intervals.length); }
+function taskStatus(id) {
+  if (state.tasks[id]) return 'done';
+  const m = taskMetaOf(id);
+  if (!m || !m.intervals.length) return 'todo';
+  return m.intervals[m.intervals.length - 1].e == null ? 'running' : 'paused';
+}
+function taskActiveMs(id) {
+  const m = taskMetaOf(id); if (!m) return 0;
+  const now = Date.now();
+  return m.intervals.reduce((t, iv) => t + ((iv.e == null ? now : iv.e) - iv.s), 0);
+}
+function runningTaskId() {
+  if (!state.taskMeta) return null;
+  for (const id in state.taskMeta) {
+    if (state.tasks[id]) continue;
+    const ivs = state.taskMeta[id].intervals;
+    if (ivs.length && ivs[ivs.length - 1].e == null) return id;
+  }
+  return null;
+}
+function pauseRunning(except) {
+  const r = runningTaskId();
+  if (r && r !== except) {
+    const ivs = taskMetaOf(r).intervals;
+    ivs[ivs.length - 1].e = Date.now();
+    refreshTaskRow(r);
+  }
+}
+function startTask(id) {
+  pauseRunning(id);            // only one task runs at a time
+  const m = ensureMeta(id);
+  const last = m.intervals[m.intervals.length - 1];
+  if (!last || last.e != null) m.intervals.push({ s: Date.now(), e: null });
+  state.tasks[id] = false;
+  refreshTaskRow(id); renderActiveBar(); saveState();
+}
+function pauseTask(id) {
+  const m = taskMetaOf(id); if (!m || !m.intervals.length) return;
+  const last = m.intervals[m.intervals.length - 1];
+  if (last.e == null) last.e = Date.now();
+  refreshTaskRow(id); renderActiveBar(); saveState();
+}
+function completeTaskTiming(id) {
+  const m = taskMetaOf(id);
+  if (m && m.intervals.length) {
+    const last = m.intervals[m.intervals.length - 1];
+    if (last.e == null) last.e = Date.now();
+    m.completedAt = Date.now();
+  }
+}
+function uncompleteTaskTiming(id) {
+  const m = taskMetaOf(id); if (m) m.completedAt = null;
+}
+
+function fmtDur(ms) {
+  const mins = Math.round(ms / 60000);
+  if (mins < 60) return mins + 'm';
+  const h = Math.floor(mins / 60), mm = mins % 60;
+  return h + 'h' + (mm ? ' ' + mm + 'm' : '');
+}
+function fmtClock(ms) {
+  const s = Math.floor(ms / 1000), p = n => String(n).padStart(2, '0');
+  return p(Math.floor(s / 3600)) + ':' + p(Math.floor((s % 3600) / 60)) + ':' + p(s % 60);
+}
+function fmtDay(ts) { return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
+
+function getTaskObj(id) {
+  for (const p of PLAN) {
+    for (const wb of p.weekBlocks) { const t = wb.tasks.find(x => x.id === id); if (t) return t; }
+    const d = p.project.deliverables.find(x => x.id === id); if (d) return d;
+  }
+  for (const tr of TRACKS) { const t = tr.tasks.find(x => x.id === id); if (t) return t; }
+  return null;
+}
+
+function taskMetaHTML(task) {
+  const id = task.id, status = taskStatus(id);
+  const est = `~${task.hours}h est`;
+  if (status === 'done') {
+    if (hasTiming(id)) {
+      const act = taskActiveMs(id), m = taskMetaOf(id);
+      let cmp = '';
+      if (task.hours > 0) {
+        const pct = Math.round((act - task.hours * 3600000) / (task.hours * 3600000) * 100);
+        if (pct !== 0) cmp = ` · <span class="${pct < 0 ? 'under' : 'over'}">${Math.abs(pct)}% ${pct < 0 ? 'under' : 'over'}</span>`;
+      }
+      return `${est} · <span class="act">${fmtDur(act)} actual</span>${cmp}${m.completedAt ? ' · done ' + fmtDay(m.completedAt) : ''}`;
+    }
+    return 'done · <span style="color:var(--text-faint)">time unknown</span>';
+  }
+  if (status === 'running' || status === 'paused') return `${est} · <span class="act">active ${fmtDur(taskActiveMs(id))}</span>`;
+  return est;
+}
+function taskCtrlHTML(task) {
+  const id = task.id, status = taskStatus(id);
+  if (status === 'todo') return `<button class="tbtn start" data-act="start">▶ Start</button>`;
+  if (status === 'running') return `<span class="live" data-live="${id}">● <span class="lt">${fmtClock(taskActiveMs(id))}</span></span><button class="tbtn pause" data-act="pause">⏸ Pause</button>`;
+  if (status === 'paused') return `<span class="tpill paused">⏸ paused</span><button class="tbtn resume" data-act="resume">▶ Resume</button>`;
+  return `<span class="tpill done">✓ done</span>`;
+}
+function refreshTaskRow(id) {
+  const row = document.querySelector(`[data-task-id="${id}"]`);
+  if (!row) return;
+  const task = getTaskObj(id); if (!task || typeof task.hours !== 'number') { if (row) row.classList.toggle('done', !!state.tasks[id]); return; }
+  row.classList.toggle('done', !!state.tasks[id]);
+  const meta = row.querySelector('.task-hours'); if (meta) meta.innerHTML = taskMetaHTML(task);
+  const ctrl = row.querySelector('.task-ctrl'); if (ctrl) ctrl.innerHTML = taskCtrlHTML(task);
+}
+
+function renderActiveBar() {
+  const bar = document.getElementById('activeBar'); if (!bar) return;
+  const id = runningTaskId();
+  if (!id) { bar.classList.remove('show'); bar.dataset.activeId = ''; if (pipWindow) renderPiP(); return; }
+  const t = getTaskObj(id);
+  document.getElementById('activeBarName').textContent = t ? t.text.replace(/<[^>]+>/g, '').replace(/^★\s*/, '') : id;
+  document.getElementById('activeBarTime').textContent = fmtClock(taskActiveMs(id));
+  bar.dataset.activeId = id;
+  const tb = document.querySelector('.topbar');
+  bar.style.top = (tb ? tb.offsetHeight : 56) + 'px';
+  bar.classList.add('show');
+  if (pipWindow) renderPiP();
+}
+
+// ==============================================================
+// =============== FLOATING TIMER (Document PiP) ================
+// ==============================================================
+let pipWindow = null, pipTaskId = null;
+function pipSupported() { return 'documentPictureInPicture' in window; }
+
+window.openTimerPiP = async function () {
+  if (!pipSupported()) { toast('Floating timer needs Chrome or Edge'); return; }
+  if (pipWindow) { try { pipWindow.focus(); } catch (e) {} return; }
+  pipTaskId = runningTaskId() || pipTaskId;
+  try {
+    pipWindow = await documentPictureInPicture.requestWindow({ width: 240, height: 150 });
+  } catch (e) { toast('Could not open floating timer'); return; }
+  const style = pipWindow.document.createElement('style');
+  style.textContent =
+    'html,body{margin:0;height:100%;background:#0f1115;color:#e8eaf0;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;}' +
+    '.pip{display:flex;flex-direction:column;height:100%;justify-content:center;gap:5px;padding:12px 14px;box-sizing:border-box;}' +
+    '.pip-task{font-size:12px;color:#9da3b3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px;}' +
+    '.pip-task .dot{color:#34d399;}' +
+    '.pip-time{font-family:ui-monospace,Menlo,monospace;font-size:30px;font-weight:700;color:#34d399;font-variant-numeric:tabular-nums;letter-spacing:1px;}' +
+    '.pip-time.paused{color:#f59e0b;}' +
+    '.pip-meta{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#6b7080;}' +
+    '.pip-btns{display:flex;gap:8px;margin-top:6px;}' +
+    '.pip-btns button{flex:1;font-family:ui-monospace,Menlo,monospace;font-size:12px;padding:8px;border-radius:8px;border:1px solid #2a2f3d;background:#20242f;color:#e8eaf0;cursor:pointer;}' +
+    '.pip-btns button.done{color:#34d399;border-color:rgba(52,211,153,.4);}' +
+    '.pip-btns button.pause{color:#f59e0b;border-color:rgba(245,158,11,.4);}' +
+    '.pip-idle{font-size:12px;color:#6b7080;text-align:center;line-height:1.5;}';
+  pipWindow.document.head.appendChild(style);
+  const root = pipWindow.document.createElement('div');
+  root.id = 'pipRoot';
+  pipWindow.document.body.appendChild(root);
+  root.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-act]'); if (!b || !pipTaskId) return;
+    const act = b.dataset.act;
+    if (act === 'pause') pauseTask(pipTaskId);
+    else if (act === 'resume') startTask(pipTaskId);
+    else if (act === 'done') toggleTask(pipTaskId);
+  });
+  pipWindow.addEventListener('pagehide', () => { pipWindow = null; });
+  renderPiP();
+};
+
+function renderPiP() {
+  if (!pipWindow) return;
+  const root = pipWindow.document.getElementById('pipRoot'); if (!root) return;
+  const id = runningTaskId() || pipTaskId;
+  if (!id) { root.innerHTML = '<div class="pip"><div class="pip-idle">No active task.<br>Start one in the tracker.</div></div>'; return; }
+  pipTaskId = id;
+  const t = getTaskObj(id), status = taskStatus(id);
+  const name = escapeHtml(t ? t.text.replace(/<[^>]+>/g, '').replace(/^★\s*/, '') : id);
+  let btns, timeCls = '', dot = '';
+  if (status === 'running') { dot = '<span class="dot">●</span>'; btns = '<button class="pause" data-act="pause">⏸ Pause</button><button class="done" data-act="done">✓ Done</button>'; }
+  else if (status === 'paused') { timeCls = ' paused'; btns = '<button data-act="resume">▶ Resume</button><button class="done" data-act="done">✓ Done</button>'; }
+  else { btns = '<button data-act="resume">▶ Start again</button>'; }
+  const meta = (t && typeof t.hours === 'number') ? `~${t.hours}h est · active ${fmtDur(taskActiveMs(id))}` : '';
+  root.innerHTML = `<div class="pip"><div class="pip-task">${dot}<span>${name}</span></div>` +
+    `<div class="pip-time${timeCls}" id="pipTime">${fmtClock(taskActiveMs(id))}</div>` +
+    `<div class="pip-meta">${meta}</div><div class="pip-btns">${btns}</div></div>`;
+}
+function updatePiPTime() {
+  if (!pipWindow) return;
+  const id = runningTaskId(); if (!id) return;
+  const el = pipWindow.document.getElementById('pipTime'); if (el) el.textContent = fmtClock(taskActiveMs(id));
+}
+
+// ==============================================================
+// =============== ANALYTICS ====================================
+// ==============================================================
+function renderAnalyticsHTML() {
+  const now = Date.now();
+  const weekly = [];
+  PLAN.forEach(p => p.weekBlocks.forEach(wb => wb.tasks.forEach(t => {
+    if (typeof t.hours === 'number') weekly.push({ id: t.id, week: wb.week, hours: t.hours });
+  })));
+
+  let totalActive = 0, estSum = 0, actSum = 0, cycleSum = 0, cycleN = 0;
+  const dayset = new Set();
+  weekly.forEach(t => {
+    const m = taskMetaOf(t.id);
+    if (m) m.intervals.forEach(iv => {
+      const e = iv.e == null ? now : iv.e;
+      totalActive += e - iv.s;
+      for (let d = new Date(iv.s).setHours(0, 0, 0, 0); d <= e; d += 86400000) dayset.add(new Date(d).toDateString());
+    });
+    if (state.tasks[t.id] && hasTiming(t.id)) {
+      const a = taskActiveMs(t.id); actSum += a; estSum += t.hours * 3600000; cycleSum += a; cycleN++;
+    }
+  });
+  const estAccuracy = estSum > 0 ? actSum / estSum : null;
+  const avgCycle = cycleN ? cycleSum / cycleN : 0;
+
+  // active-day streak
+  let streak = 0;
+  for (let d = new Date().setHours(0, 0, 0, 0); ; d -= 86400000) { if (dayset.has(new Date(d).toDateString())) streak++; else break; }
+
+  // velocity + projection
+  const allIds = allTaskIds();
+  const doneTotal = allIds.filter(id => state.tasks[id]).length;
+  const daysElapsed = Math.max(1, daysSinceStart());
+  const tasksPerDay = doneTotal / daysElapsed;
+  const remaining = allIds.length - doneTotal;
+  const projFinish = tasksPerDay > 0 ? now + (remaining / tasksPerDay) * 86400000 : null;
+  const target = getTargetDate().getTime();
+  const finishDelta = projFinish != null ? Math.round((target - projFinish) / 86400000) : null;
+  const hoursPerWk = (totalActive / 3600000) / daysElapsed * 7;
+
+  // pace trend (completions last 7d vs prior 7d)
+  const doneInRange = (a, b) => allIds.filter(id => { const m = taskMetaOf(id); return state.tasks[id] && m && m.completedAt >= a && m.completedAt < b; }).length;
+  const last7 = doneInRange(now - 7 * 86400000, now + 1), prev7 = doneInRange(now - 14 * 86400000, now - 7 * 86400000);
+  const trend = (last7 === 0 && prev7 === 0) ? '—' : last7 > prev7 ? '↑ speeding up' : last7 < prev7 ? '↓ slowing' : '→ steady';
+
+  // per-week rows up to current week + 1
+  const maxW = Math.min(currentWeek() + 1, TOTAL_WEEKS - 1);
+  const byWeek = {};
+  weekly.forEach(t => { (byWeek[t.week] = byWeek[t.week] || []).push(t); });
+  const rows = Object.keys(byWeek).map(Number).filter(w => w <= maxW).sort((a, b) => a - b).map(w => {
+    const ts = byWeek[w]; let starts = [], ends = [], done = 0, est = 0, act = 0, allDone = true;
+    ts.forEach(t => {
+      est += t.hours; const m = taskMetaOf(t.id);
+      if (m && m.intervals.length) { starts.push(m.intervals[0].s); act += taskActiveMs(t.id); }
+      if (state.tasks[t.id]) { done++; if (m && m.completedAt) ends.push(m.completedAt); } else allDone = false;
+    });
+    return { w, total: ts.length, done, est, act,
+      started: starts.length ? Math.min(...starts) : null,
+      ended: (allDone && ends.length) ? Math.max(...ends) : null, started_any: starts.length > 0, allDone };
+  });
+
+  // ---- build HTML ----
+  const kpi = (v, l, cls = '', hot = false) => `<div class="an-kpi${hot ? ' hot' : ''}"><div class="v ${cls}">${v}</div><div class="l">${l}</div></div>`;
+  const projStr = projFinish != null ? fmtFullDate(projFinish) : '—';
+  const deltaStr = finishDelta != null ? (finishDelta >= 0 ? `${finishDelta}d ahead of target` : `${Math.abs(finishDelta)}d behind target`) : 'set timing to project';
+  let accStr = '—', accLabel = 'no completed timed tasks yet';
+  if (estAccuracy != null) { const pct = Math.round((estAccuracy - 1) * 100); accStr = estAccuracy.toFixed(2) + '×'; accLabel = pct > 0 ? `~${pct}% over estimate` : pct < 0 ? `~${Math.abs(pct)}% under estimate` : 'spot on'; }
+
+  const kpis = `<div class="an-kpis">
+    ${kpi(projStr, 'Projected finish · ' + deltaStr, finishDelta != null && finishDelta >= 0 ? 'g' : finishDelta != null ? 'a' : '')}
+    ${kpi(trend, 'Pace trend (last 7d vs prior)', trend.startsWith('↑') ? 'g' : trend.startsWith('↓') ? 'a' : '')}
+    ${kpi((tasksPerDay * 7).toFixed(1) + ' / wk', 'Velocity · ' + hoursPerWk.toFixed(1) + ' h/wk')}
+    ${kpi(accStr, 'Est accuracy · ' + accLabel, estAccuracy != null && estAccuracy > 1 ? 'a' : 'g', true)}
+    ${kpi(avgCycle ? fmtDur(avgCycle) : '—', 'Avg cycle time / task')}
+    ${kpi(streak + (streak === 1 ? ' day' : ' days'), 'Active-day streak · ' + fmtDur(totalActive) + ' total')}
+  </div>`;
+
+  const rowsHTML = rows.map(r => {
+    const dvp = !r.started_any ? '<span class="warn">not started</span>' : r.allDone ? '<span class="ok">done</span>' : 'in progress';
+    return `<tr><td>${r.w}</td>
+      <td>${r.started ? fmtDay(r.started) : '—'}</td>
+      <td>${r.ended ? fmtDay(r.ended) : (r.started_any ? 'in progress' : '—')}</td>
+      <td>${dvp}</td><td>${r.done}/${r.total}</td><td>${r.est}</td>
+      <td>${r.act ? (r.act / 3600000).toFixed(1) : '0'}</td></tr>`;
+  }).join('');
+  const table = `<table class="an-table"><tr><th>Wk</th><th>Started</th><th>Ended</th><th>Status</th><th>Tasks</th><th>Est h</th><th>Act h</th></tr>${rowsHTML}</table>`;
+
+  const maxH = Math.max(1, ...rows.map(r => Math.max(r.est, r.act / 3600000)));
+  const bars = rows.map(r => {
+    const ah = (r.act / 3600000), eh = r.est;
+    return `<div class="an-barwrap"><div class="an-bargrp">
+      <div class="an-bar act" style="height:${Math.round(ah / maxH * 100)}%" title="${ah.toFixed(1)}h actual"></div>
+      <div class="an-bar plan" style="height:${Math.round(eh / maxH * 100)}%" title="${eh}h est"></div>
+    </div><div class="an-blab">W${r.w}</div></div>`;
+  }).join('');
+  const chart = `<div class="an-chart"><div class="an-chtitle">Hours per week — actual vs estimated</div>
+    <div class="an-bars">${bars}</div>
+    <div class="an-legend"><span><i style="background:var(--accent)"></i>Actual active hours</span><span><i style="background:var(--border)"></i>Estimated hours</span></div></div>`;
+
+  const hint = totalActive === 0 ? `<div class="an-empty">No timing data yet — hit ▶ Start on a task and the projection, accuracy, and per-week numbers fill in automatically. Your ${doneTotal} earlier completions are counted as done but excluded from time charts.</div>` : '';
+
+  return `<h3>Analytics</h3>${hint}${kpis}${table}${chart}<div class="modal-actions"><button class="primary" onclick="hideModal()">Close</button></div>`;
+}
+function fmtFullDate(ts) { return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+window.openAnalytics = function () { showModal(renderAnalyticsHTML(), true); };
+
 function renderTask(task) {
   const isDone = !!state.tasks[task.id];
   const isStretch = task.text && task.text.startsWith('★');
+  const timed = typeof task.hours === 'number';
   const wrapper = el('li', {
     class: 'task' + (isDone ? ' done' : '') + (isStretch ? ' stretch' : ''),
     'data-task-id': task.id
@@ -1262,14 +1572,28 @@ function renderTask(task) {
   const cleanText = isStretch ? task.text.replace(/^★\s*/, '') : task.text;
   const text = el('div', { class: 'task-text', html: cleanText });
   body.appendChild(text);
-  if (task.hours) {
-    body.appendChild(el('div', { class: 'task-hours' }, [`~${task.hours}h`]));
+  if (timed) {
+    body.appendChild(el('div', { class: 'task-hours', html: taskMetaHTML(task) }));
   }
   wrapper.appendChild(cb);
   wrapper.appendChild(body);
 
+  if (timed) {
+    const ctrl = el('div', { class: 'task-ctrl', html: taskCtrlHTML(task) });
+    ctrl.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const btn = ev.target.closest('[data-act]');
+      if (!btn) return;
+      const act = btn.dataset.act;
+      if (act === 'start' || act === 'resume') startTask(task.id);
+      else if (act === 'pause') pauseTask(task.id);
+    });
+    wrapper.appendChild(ctrl);
+  }
+
   wrapper.addEventListener('click', (ev) => {
     if (ev.target.tagName === 'A') return;
+    if (ev.target.closest('.task-ctrl')) return;
     ev.preventDefault();
     toggleTask(task.id, wrapper);
   });
@@ -1513,17 +1837,17 @@ function findTrackIdForTask(taskId) {
 function toggleTask(taskId, taskEl) {
   const newVal = !state.tasks[taskId];
   state.tasks[taskId] = newVal;
-  if (taskEl) taskEl.classList.toggle('done', newVal);
-  else {
-    const found = document.querySelector(`[data-task-id="${taskId}"]`);
-    if (found) found.classList.toggle('done', newVal);
-  }
+  if (newVal) completeTaskTiming(taskId); else uncompleteTaskTiming(taskId);
+  const row = taskEl || document.querySelector(`[data-task-id="${taskId}"]`);
+  if (row) row.classList.toggle('done', newVal);
+  refreshTaskRow(taskId);
   const phaseId = findPhaseIdForTask(taskId);
   if (phaseId) updatePhaseUI(phaseId);
   const trackId = findTrackIdForTask(taskId);
   if (trackId) updateTrackUI(trackId);
   updateOverallUI();
-  applyFilterToTask(taskEl || document.querySelector(`[data-task-id="${taskId}"]`));
+  renderActiveBar();
+  applyFilterToTask(row);
   saveState();
 }
 
@@ -1570,10 +1894,11 @@ function applyFilter() {
 // =============== MODAL helpers ================================
 // ==============================================================
 
-function showModal(html) {
+function showModal(html, wide) {
   const m = document.getElementById('modalBody');
   const bg = document.getElementById('modalBg');
   m.innerHTML = html;
+  m.classList.toggle('wide', !!wide);
   bg.classList.add('show');
 }
 function hideModal() {
@@ -1618,7 +1943,7 @@ window.doImportConfirm = async function() {
   if (!txt) { toast('Empty input'); return; }
   try {
     const obj = JSON.parse(txt);
-    state = Object.assign({ tasks: {}, notes: {}, expanded: {}, filter: 'all', startedAt: Date.now() }, obj);
+    state = Object.assign({ tasks: {}, taskMeta: {}, notes: {}, expanded: {}, filter: 'all', startedAt: Date.now() }, obj);
     await saveStateNow();
     hideModal();
     fullRender();
@@ -1636,7 +1961,7 @@ function doReset() {
   `);
 }
 window.doResetConfirm = async function() {
-  state = { tasks: {}, notes: {}, expanded: {}, startedAt: Date.now(), filter: 'all', timelineCollapsed: false };
+  state = { tasks: {}, taskMeta: {}, notes: {}, expanded: {}, startedAt: Date.now(), filter: 'all', timelineCollapsed: false };
   await saveStateNow();
   hideModal();
   fullRender();
@@ -1667,6 +1992,7 @@ function fullRender() {
   TRACKS.forEach(tr => updateTrackUI(tr.id));
   updateOverallUI();
   applyFilter();
+  renderActiveBar();
 }
 
 // ==============================================================
@@ -1908,7 +2234,28 @@ async function boot() {
   document.getElementById('btnSync').addEventListener('click', openSyncModal);
   document.getElementById('btnExport').addEventListener('click', doExport);
   document.getElementById('btnImport').addEventListener('click', doImport);
+  document.getElementById('btnAnalytics').addEventListener('click', openAnalytics);
   document.getElementById('btnReset').addEventListener('click', doReset);
+
+  // Active-task bar controls
+  document.getElementById('activeBarPause').addEventListener('click', () => {
+    const id = document.getElementById('activeBar').dataset.activeId; if (id) pauseTask(id);
+  });
+  document.getElementById('activeBarDone').addEventListener('click', () => {
+    const id = document.getElementById('activeBar').dataset.activeId; if (id) toggleTask(id);
+  });
+  const floatBtn = document.getElementById('activeBarFloat');
+  if (pipSupported()) floatBtn.addEventListener('click', openTimerPiP);
+  else floatBtn.style.display = 'none';
+  // Live timer tick (display-only, not persisted)
+  setInterval(() => {
+    const id = runningTaskId(); if (!id) return;
+    const ms = taskActiveMs(id);
+    const lt = document.querySelector(`[data-live="${id}"] .lt`); if (lt) lt.textContent = fmtClock(ms);
+    const bar = document.getElementById('activeBar');
+    if (bar.classList.contains('show')) document.getElementById('activeBarTime').textContent = fmtClock(ms);
+    updatePiPTime();
+  }, 1000);
 
   cloud.init();
   updateSyncUI();

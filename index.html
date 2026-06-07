@@ -1085,6 +1085,66 @@
     transition: color .15s, border-color .15s;
   }
   .artifacts-refresh:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ===== ACTIVE-TASK STICKY BAR ===== */
+  .active-bar {
+    position: sticky; top: 56px; z-index: 49;
+    display: none; align-items: center; gap: 10px;
+    background: linear-gradient(90deg, rgba(52,211,153,0.12), rgba(15,17,21,0.92));
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 9px 16px; font-family: var(--mono); font-size: 12px;
+  }
+  .active-bar.show { display: flex; }
+  .active-bar .ab-lbl { color: var(--green); font-weight: 700; letter-spacing: 0.05em; flex-shrink: 0; }
+  .active-bar .ab-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .active-bar .ab-time { color: var(--green); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .active-bar .ab-sp { flex: 1; }
+  .active-bar button { flex-shrink: 0; }
+
+  /* ===== TASK TIMING CONTROLS ===== */
+  .task-ctrl { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 1px; }
+  .tbtn {
+    font-family: var(--mono); font-size: 11px; padding: 4px 9px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg-soft); color: var(--text-dim);
+    cursor: pointer; white-space: nowrap; transition: color .12s, border-color .12s;
+  }
+  .tbtn:hover { color: var(--text); }
+  .tbtn.start:hover, .tbtn.resume { color: var(--green); border-color: rgba(52,211,153,0.4); }
+  .tbtn.pause { color: var(--accent); border-color: rgba(245,158,11,0.4); }
+  .tbtn.done:hover { color: var(--green); border-color: rgba(52,211,153,0.4); }
+  .task .live { font-family: var(--mono); font-size: 12px; color: var(--green); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .task .tpill { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+  .task .tpill.paused { background: rgba(245,158,11,0.12); color: var(--accent); }
+  .task .tpill.done { background: var(--green-soft); color: var(--green); }
+  .task-hours .act { color: var(--green); }
+  .task-hours .under { color: var(--green); }
+  .task-hours .over { color: var(--accent); }
+
+  /* ===== ANALYTICS MODAL ===== */
+  .modal.wide { max-width: 760px; }
+  .an-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 4px 0 16px; }
+  .an-kpi { background: var(--bg-soft); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 12px; }
+  .an-kpi.hot { border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.06); }
+  .an-kpi .v { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--text); }
+  .an-kpi .v.g { color: var(--green); } .an-kpi .v.a { color: var(--accent); }
+  .an-kpi .l { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px; line-height: 1.35; }
+  .an-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11.5px; margin-top: 4px; }
+  .an-table th { text-align: left; color: var(--text-faint); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: 10px; }
+  .an-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-soft); color: var(--text-dim); }
+  .an-table .ok { color: var(--green); } .an-table .warn { color: var(--accent); }
+  .an-chart { margin-top: 18px; }
+  .an-chtitle { font-family: var(--mono); font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px; }
+  .an-bars { display: flex; align-items: flex-end; gap: 8px; height: 96px; padding: 0 4px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .an-barwrap { flex: 1 0 26px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
+  .an-bargrp { display: flex; gap: 3px; align-items: flex-end; width: 100%; height: 100%; justify-content: center; }
+  .an-bar { width: 42%; border-radius: 3px 3px 0 0; min-height: 2px; }
+  .an-bar.act { background: var(--accent); }
+  .an-bar.plan { background: var(--border); }
+  .an-blab { font-family: var(--mono); font-size: 9px; color: var(--text-faint); }
+  .an-legend { display: flex; gap: 14px; font-family: var(--mono); font-size: 10px; color: var(--text-faint); margin-top: 8px; }
+  .an-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+  .an-empty { color: var(--text-faint); font-family: var(--mono); font-size: 12px; padding: 8px; }
 </style>
 </head>
 <body>
@@ -1120,6 +1180,17 @@
     </div>
   </div>
   <div class="global-progress"><div class="global-progress-fill" id="globalProgressFill"></div></div>
+</div>
+
+<!-- ===== ACTIVE-TASK STICKY BAR ===== -->
+<div class="active-bar" id="activeBar">
+  <span class="ab-lbl">▶ IN PROGRESS</span>
+  <span class="ab-name" id="activeBarName"></span>
+  <span class="ab-time" id="activeBarTime">00:00:00</span>
+  <span class="ab-sp"></span>
+  <button class="tbtn" id="activeBarFloat" title="Pop out a floating always-on-top timer">⧉ Float</button>
+  <button class="tbtn pause" id="activeBarPause">⏸ Pause</button>
+  <button class="tbtn done" id="activeBarDone">✓ Done</button>
 </div>
 
 <!-- ===== HERO ===== -->
@@ -1191,6 +1262,7 @@
   <button class="bb-btn" id="btnSync">☁ Sync</button>
   <button class="bb-btn" id="btnExport">↓ Export</button>
   <button class="bb-btn" id="btnImport">↑ Import</button>
+  <button class="bb-btn" id="btnAnalytics">📊 Analytics</button>
   <button class="bb-btn danger" id="btnReset">⟲ Reset</button>
 </div>
 
