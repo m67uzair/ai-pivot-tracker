@@ -1553,10 +1553,86 @@ function renderAnalyticsHTML() {
 
   const hint = totalActive === 0 ? `<div class="an-empty">No timing data yet — hit ▶ Start on a task and the projection, accuracy, and per-week numbers fill in automatically. Your ${doneTotal} earlier completions are counted as done but excluded from time charts.</div>` : '';
 
-  return `<h3>Analytics</h3>${hint}${kpis}${table}${chart}<div class="modal-actions"><button class="primary" onclick="hideModal()">Close</button></div>`;
+  return `<h3>Analytics</h3>${hint}${kpis}${table}${chart}${analyticsDaySectionHTML()}<div class="modal-actions"><button class="primary" onclick="hideModal()">Close</button></div>`;
 }
 function fmtFullDate(ts) { return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
-window.openAnalytics = function () { showModal(renderAnalyticsHTML(), true); };
+
+// ----- Hours-by-day breakdown with selectable date range -----
+function startOfDay(ts) { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function toDateInput(ts) { const d = new Date(ts), p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); }
+function parseDateInput(v) { return new Date(v + 'T00:00:00').getTime(); }
+
+function activeMsByDay(fromTs, toTs) {
+  const DAY = 86400000, map = {}, now = Date.now();
+  for (let d = startOfDay(fromTs); d <= toTs; d += DAY) map[d] = 0;
+  for (const id in (state.taskMeta || {})) {
+    for (const iv of state.taskMeta[id].intervals) {
+      const s = iv.s, e = (iv.e == null ? now : iv.e);
+      const cs = Math.max(s, fromTs), ce = Math.min(e, toTs);
+      if (ce <= cs) continue;
+      for (let d = startOfDay(cs); d < ce; d += DAY) {
+        const os = Math.max(cs, d), oe = Math.min(ce, d + DAY);
+        if (oe > os) map[d] = (map[d] || 0) + (oe - os);
+      }
+    }
+  }
+  return map;
+}
+
+function renderDayBreakdown(fromTs, toTs) {
+  const map = activeMsByDay(fromTs, toTs);
+  const days = Object.keys(map).map(Number).sort((a, b) => a - b);
+  if (!days.length) return '<div class="an-empty">Pick a valid date range.</div>';
+  let wdMs = 0, wdN = 0, weMs = 0, weN = 0, total = 0;
+  days.forEach(d => { const dow = new Date(d).getDay(), ms = map[d]; total += ms; if (dow === 0 || dow === 6) { weMs += ms; weN++; } else { wdMs += ms; wdN++; } });
+  const wdAvg = wdN ? wdMs / wdN : 0, weAvg = weN ? weMs / weN : 0;
+  const maxMs = Math.max(1, ...days.map(d => map[d]));
+  const wk = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  const bars = days.map(d => {
+    const dow = new Date(d).getDay(), we = (dow === 0 || dow === 6), ms = map[d];
+    const lab = new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    return `<div class="an-barwrap"><div class="an-bargrp"><div class="an-bar ${we ? 'we' : 'act'}" style="height:${Math.round(ms / maxMs * 100)}%" title="${lab}: ${fmtDur(ms)}"></div></div><div class="an-blab">${wk[dow]}</div></div>`;
+  }).join('');
+  return `<div class="an-daykpis">
+      <div class="an-kpi"><div class="v">${fmtDur(wdAvg)}</div><div class="l">Avg / weekday</div></div>
+      <div class="an-kpi"><div class="v">${fmtDur(weAvg)}</div><div class="l">Avg / weekend day</div></div>
+      <div class="an-kpi"><div class="v">${fmtDur(total)}</div><div class="l">Total in range</div></div>
+    </div>
+    <div class="an-bars" style="margin-top:12px">${bars}</div>
+    <div class="an-legend"><span><i style="background:var(--accent)"></i>Weekday</span><span><i style="background:var(--purple)"></i>Weekend</span></div>`;
+}
+
+function analyticsDaySectionHTML() {
+  const DAY = 86400000, now = Date.now();
+  const defFrom = Math.max(startOfDay(state.startedAt || now), startOfDay(now - 13 * DAY));
+  return `<div class="an-chtitle" style="margin-top:22px">Hours by day</div>
+    <div class="an-range">
+      <button data-rng="7">7d</button><button data-rng="14">14d</button><button data-rng="30">30d</button><button data-rng="all">All</button>
+      <input type="date" id="anFrom" value="${toDateInput(defFrom)}"><span class="an-arrow">→</span><input type="date" id="anTo" value="${toDateInput(now)}">
+    </div>
+    <div id="anDayBody">${renderDayBreakdown(defFrom, now)}</div>`;
+}
+window.renderAnalyticsRange = function () {
+  const f = document.getElementById('anFrom'), t = document.getElementById('anTo'), body = document.getElementById('anDayBody');
+  if (!f || !t || !body) return;
+  const from = parseDateInput(f.value), to = parseDateInput(t.value) + 86400000 - 1;
+  if (isNaN(from) || isNaN(to) || to < from) { body.innerHTML = '<div class="an-empty">Invalid range.</div>'; return; }
+  body.innerHTML = renderDayBreakdown(from, to);
+};
+window.setAnalyticsPreset = function (rng) {
+  const now = Date.now(), DAY = 86400000;
+  document.getElementById('anTo').value = toDateInput(now);
+  const from = rng === 'all' ? startOfDay(state.startedAt || now) : startOfDay(now - (parseInt(rng) - 1) * DAY);
+  document.getElementById('anFrom').value = toDateInput(from);
+  renderAnalyticsRange();
+};
+function setupAnalyticsRange() {
+  const f = document.getElementById('anFrom'), t = document.getElementById('anTo');
+  if (f) f.addEventListener('change', renderAnalyticsRange);
+  if (t) t.addEventListener('change', renderAnalyticsRange);
+  document.querySelectorAll('#modalBody [data-rng]').forEach(b => b.addEventListener('click', () => setAnalyticsPreset(b.dataset.rng)));
+}
+window.openAnalytics = function () { showModal(renderAnalyticsHTML(), true); setupAnalyticsRange(); };
 
 function renderTask(task) {
   const isDone = !!state.tasks[task.id];
