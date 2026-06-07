@@ -1530,7 +1530,7 @@ function renderAnalyticsHTML() {
   </div>`;
 
   const rowsHTML = rows.map(r => {
-    const dvp = !r.started_any ? '<span class="warn">not started</span>' : r.allDone ? '<span class="ok">done</span>' : 'in progress';
+    const dvp = r.allDone ? '<span class="ok">done</span>' : (r.done > 0 || r.started_any) ? 'in progress' : '<span class="warn">not started</span>';
     return `<tr><td>${r.w}</td>
       <td>${r.started ? fmtDay(r.started) : '—'}</td>
       <td>${r.ended ? fmtDay(r.ended) : (r.started_any ? 'in progress' : '—')}</td>
