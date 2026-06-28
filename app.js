@@ -2524,13 +2524,26 @@ window.copyWeekBlurb = function (phaseId, week) {
 };
 
 // The showcase IS the real tracker page, rendered read-only from a public snapshot.
+// Auto-expand phases/weeks that have completed work and focus on done tasks, so
+// a visitor immediately sees the week titles + what was actually finished.
 function applySnapshotToState(snap) {
+  const tasks = Object.assign({}, snap.tasks || {});
+  const expanded = {}, weekExpanded = {};
+  PLAN.forEach(p => {
+    let phaseHasDone = p.project.deliverables.some(d => tasks[d.id]);
+    p.weekBlocks.forEach(wb => {
+      const wkDone = wb.tasks.some(t => tasks[t.id]);
+      weekExpanded[p.id + '-w' + wb.week] = wkDone;   // open weeks with progress, collapse the rest
+      if (wkDone) phaseHasDone = true;
+    });
+    if (phaseHasDone) expanded[p.id] = true;          // open phases with any completed work
+  });
   state = {
-    tasks: Object.assign({}, snap.tasks || {}),
+    tasks,
     taskMeta: JSON.parse(JSON.stringify(snap.taskMeta || {})),
-    notes: {}, expanded: {}, weekExpanded: {},
+    notes: {}, expanded, weekExpanded,
     startedAt: snap.startedAt || Date.now(),
-    filter: 'all', timelineCollapsed: false, activeTaskId: null
+    filter: 'done', timelineCollapsed: false, activeTaskId: null
   };
 }
 function showRoMessage(text, withBtn) {
