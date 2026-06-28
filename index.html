@@ -1085,6 +1085,18 @@
     transition: color .15s, border-color .15s;
   }
   .artifacts-refresh:hover { color: var(--accent); border-color: var(--accent); }
+  .artifacts-map { display: flex; gap: 6px; padding: 0 14px 4px; }
+  .artifacts-map input {
+    flex: 1; min-width: 0; background: var(--bg-soft); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px; padding: 6px 8px;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .artifacts-map input:focus { outline: none; border-color: var(--accent); }
+  .artifacts-mapbtn {
+    flex-shrink: 0; background: var(--accent-soft); border: 1px solid var(--accent);
+    color: var(--accent); font-family: var(--mono); font-size: 11px; padding: 5px 11px; border-radius: 6px;
+  }
+  .artifacts-mapbtn:hover { background: var(--accent); color: var(--bg); }
 
   /* ===== ACTIVE-TASK STICKY BAR ===== */
   .active-bar {
@@ -1101,6 +1113,11 @@
   .active-bar .ab-time { color: var(--green); font-variant-numeric: tabular-nums; flex-shrink: 0; }
   .active-bar .ab-sp { flex: 1; }
   .active-bar button { flex-shrink: 0; }
+  .active-bar.paused { background: linear-gradient(90deg, rgba(245,158,11,0.12), rgba(15,17,21,0.92)); }
+  .active-bar.paused .ab-lbl { color: var(--accent); }
+  .ab-ctrl { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .ab-dismiss { background: none; border: none; color: var(--text-faint); font-size: 17px; line-height: 1; cursor: pointer; padding: 0 4px; }
+  .ab-dismiss:hover { color: var(--text); }
 
   /* ===== TASK TIMING CONTROLS ===== */
   .task-ctrl { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 1px; }
@@ -1137,7 +1154,7 @@
   .an-chtitle { font-family: var(--mono); font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px; }
   .an-bars { display: flex; align-items: flex-end; gap: 8px; height: 96px; padding: 0 4px; border-bottom: 1px solid var(--border); overflow-x: auto; }
   .an-barwrap { flex: 1 0 26px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
-  .an-bargrp { display: flex; gap: 3px; align-items: flex-end; width: 100%; height: 100%; justify-content: center; }
+  .an-bargrp { display: flex; gap: 3px; align-items: flex-end; width: 100%; flex: 1; min-height: 0; justify-content: center; }
   .an-bar { width: 42%; border-radius: 3px 3px 0 0; min-height: 2px; }
   .an-bar.act { background: var(--accent); }
   .an-bar.plan { background: var(--border); }
@@ -1152,9 +1169,79 @@
   .an-range input[type=date] { font-family: var(--mono); font-size: 11px; background: var(--bg-soft); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 3px 6px; color-scheme: dark; }
   .an-arrow { color: var(--text-faint); }
   .an-daykpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .an-tabs { display: flex; gap: 6px; margin: 4px 0 14px; border-bottom: 1px solid var(--border); }
+  .an-tab { font-family: var(--mono); font-size: 12px; padding: 6px 12px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-faint); cursor: pointer; }
+  .an-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .an-bar-val { font-family: var(--mono); font-size: 9px; color: var(--text-dim); height: 12px; line-height: 12px; }
+  /* ===== PUBLIC SHOWCASE ===== */
+  #showcaseContainer { display: none; }
+  body.showcase-mode #showcaseContainer { display: block; max-width: 880px; margin: 0 auto; padding: 24px 16px 80px; }
+  body.showcase-mode .topbar,
+  body.showcase-mode .hero,
+  body.showcase-mode .timeline-section,
+  body.showcase-mode .filters,
+  body.showcase-mode #phasesContainer,
+  body.showcase-mode #tracksContainer,
+  body.showcase-mode .bottom-bar,
+  body.showcase-mode .active-bar,
+  body.showcase-mode .artifacts-tab { display: none !important; }
+  .sc-loading, .sc-empty { padding: 60px 16px; text-align: center; color: var(--text-dim); }
+  .sc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
+  .sc-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em; color: var(--text-faint); text-transform: uppercase; }
+  .sc-title { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; margin: 6px 0 4px; }
+  .sc-sub { color: var(--text-faint); font-family: var(--mono); font-size: 12px; }
+  .sc-startown { flex-shrink: 0; background: var(--accent); color: var(--bg); border: none; font-weight: 700; font-size: 13px; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
+  .sc-startown:hover { filter: brightness(1.08); }
+  .sc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 24px; }
+  .sc-stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 8px; text-align: center; }
+  .sc-stat .v { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent); }
+  .sc-stat .l { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
+  .sc-section-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-faint); text-transform: uppercase; margin: 26px 0 12px; }
+  /* heatmap */
+  .hm-grid { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 4px; }
+  .hm-col { display: flex; flex-direction: column; gap: 3px; }
+  .hm-cell { width: 12px; height: 12px; border-radius: 2px; background: var(--bg-soft); }
+  .hm-cell.hm-empty { background: transparent; }
+  .hm-cell[data-level="1"] { background: rgba(52,211,153,0.30); }
+  .hm-cell[data-level="2"] { background: rgba(52,211,153,0.55); }
+  .hm-cell[data-level="3"] { background: rgba(52,211,153,0.78); }
+  .hm-cell[data-level="4"] { background: var(--green); }
+  .hm-legend { display: flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 10px; color: var(--text-faint); margin-top: 8px; }
+  .hm-legend i { width: 12px; height: 12px; border-radius: 2px; background: var(--bg-soft); display: inline-block; }
+  .hm-legend i[data-level="1"] { background: rgba(52,211,153,0.30); }
+  .hm-legend i[data-level="2"] { background: rgba(52,211,153,0.55); }
+  .hm-legend i[data-level="3"] { background: rgba(52,211,153,0.78); }
+  .hm-legend i[data-level="4"] { background: var(--green); }
+  .hm-caption { font-size: 11px; color: var(--text-faint); margin-top: 8px; line-height: 1.5; }
+  /* weekly cards */
+  .sc-weeks { display: flex; flex-direction: column; gap: 12px; }
+  .sc-week { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .sc-week-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .sc-wk { font-family: var(--mono); font-size: 11px; color: var(--accent); background: var(--accent-soft); padding: 2px 7px; border-radius: 4px; font-weight: 700; }
+  .sc-focus { font-size: 14px; font-weight: 700; }
+  .sc-count { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--green); }
+  .sc-tasks { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .sc-tasks li { font-size: 13px; color: var(--text-dim); padding-left: 16px; position: relative; line-height: 1.4; }
+  .sc-tasks li::before { content: "✓"; color: var(--green); position: absolute; left: 0; }
+  .sc-skills { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .sc-skills span { font-family: var(--mono); font-size: 10px; color: var(--text-faint); background: var(--bg-soft); border: 1px solid var(--border-soft); padding: 2px 7px; border-radius: 999px; }
+  .sc-share { background: var(--bg-soft); border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 11px; padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+  .sc-share:hover { color: var(--accent); border-color: var(--accent); }
+  .sc-foot { margin-top: 26px; font-family: var(--mono); font-size: 11px; color: var(--text-faint); text-align: center; }
+  /* week-in-review card */
+  .wr-card { background: linear-gradient(150deg, #161922, #0f1115); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 12px 0; }
+  .wr-top { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; }
+  .wr-focus { font-size: 18px; font-weight: 800; margin: 6px 0 12px; line-height: 1.25; }
+  .wr-stats { display: flex; gap: 16px; font-family: var(--mono); font-size: 13px; color: var(--text); margin-bottom: 12px; }
+  .wr-skills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .wr-skills span { font-family: var(--mono); font-size: 11px; color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 999px; }
+  .wr-foot { font-family: var(--mono); font-size: 11px; color: var(--text-faint); }
 </style>
 </head>
 <body>
+
+<!-- ===== PUBLIC SHOWCASE (read-only; shown in showcase-mode) ===== -->
+<div id="showcaseContainer"></div>
 
 <!-- ===== ARTIFACTS SIDEBAR ===== -->
 <button class="artifacts-tab" id="artifactsTab" aria-label="Open artifacts panel">
@@ -1171,8 +1258,12 @@
     <button class="artifacts-close" id="artifactsClose" aria-label="Close panel">&times;</button>
   </div>
   <div class="artifacts-list" id="artifactsList"></div>
+  <div class="artifacts-map">
+    <input id="artifactsRepoInput" placeholder="your-username/your-repo" spellcheck="false" autocapitalize="off" />
+    <button class="artifacts-mapbtn" id="artifactsMapBtn" title="Show artifacts from this repo">Map</button>
+  </div>
   <div class="artifacts-foot">
-    <a href="https://github.com/m67uzair/ai-pivot-practice" target="_blank" rel="noopener">↗ ai-pivot-practice</a>
+    <a id="artifactsRepoLink" href="https://github.com/m67uzair/ai-pivot-practice" target="_blank" rel="noopener">↗ ai-pivot-practice</a>
     <button class="artifacts-refresh" id="artifactsRefresh" title="Re-fetch from GitHub">↻ refresh</button>
   </div>
 </aside>
@@ -1191,13 +1282,11 @@
 
 <!-- ===== ACTIVE-TASK STICKY BAR ===== -->
 <div class="active-bar" id="activeBar">
-  <span class="ab-lbl">▶ IN PROGRESS</span>
+  <span class="ab-lbl" id="activeBarLbl">▶ IN PROGRESS</span>
   <span class="ab-name" id="activeBarName"></span>
   <span class="ab-time" id="activeBarTime">00:00:00</span>
   <span class="ab-sp"></span>
-  <button class="tbtn" id="activeBarFloat" title="Pop out a floating always-on-top timer">⧉ Float</button>
-  <button class="tbtn pause" id="activeBarPause">⏸ Pause</button>
-  <button class="tbtn done" id="activeBarDone">✓ Done</button>
+  <span class="ab-ctrl" id="activeBarCtrl"></span>
 </div>
 
 <!-- ===== HERO ===== -->
@@ -1270,6 +1359,7 @@
   <button class="bb-btn" id="btnExport">↓ Export</button>
   <button class="bb-btn" id="btnImport">↑ Import</button>
   <button class="bb-btn" id="btnAnalytics">📊 Analytics</button>
+  <button class="bb-btn" id="btnShowcase">👁 Showcase</button>
   <button class="bb-btn danger" id="btnReset">⟲ Reset</button>
 </div>
 

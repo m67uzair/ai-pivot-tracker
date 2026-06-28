@@ -56,7 +56,24 @@ The first paragraph after the H1 becomes the card description.
 | `name`   | first `# H1` heading          | no       | overridable via `name:` in the block |
 | `desc`   | first paragraph after the H1  | no       | overridable via `desc:` in the block |
 
-Results are cached in `localStorage` for 5 minutes; after pushing a new project, hit **↻ refresh** in the panel to force a live re-fetch (raw GitHub URLs are cache-busted to avoid stale CDN copies). The source repo is configured at the top of the artifacts section in `app.js` (`ARTIFACTS_OWNER` / `ARTIFACTS_NAME` / `ARTIFACTS_BRANCH`).
+Results are cached in `localStorage` (per repo) for 5 minutes; after pushing a new project, hit **↻ refresh** in the panel to force a live re-fetch (raw GitHub URLs are cache-busted to avoid stale CDN copies).
+
+### Map your own practice repo (no auth)
+
+The artifacts panel can point at **any public GitHub repo** — no sign-in, no fork required. Either:
+
+- Add `?repo=owner/name` (optionally `&branch=…`) to the URL, e.g. `…/ai-pivot-tracker/?repo=you/your-practice` — this is shareable, or
+- Type `owner/repo` into the box at the bottom of the Artifacts panel and hit **Map**.
+
+The choice persists in `localStorage` and the panel re-fetches that repo's folders (read-only, anonymous GitHub API). Defaults to `m67uzair/ai-pivot-practice`.
+
+## Public showcase
+
+Anonymous visitors land on a **read-only showcase** — overall stats, a GitHub-style contribution graph, and weekly cards (with auto-derived skills) — and can hit **Start your own** to switch to the interactive tracker (their own `localStorage`). Signed-in users go straight to their interactive tracker and can preview their own showcase via the **👁 Showcase** button.
+
+**Anyone can publish their own showcase** (not just the site owner). Set a handle in the **☁ Sync** modal; your progress is then published — sanitized — under that handle, shareable at `?user=<handle>`. The default landing (no `?user=`) shows the site owner's showcase.
+
+Served **live** from a public-readable Supabase `showcase` table: on every cloud sync, the signed-in user publishes a **sanitized** snapshot (done tasks + timing/dates + start date only — **never notes**) under their own slug. RLS allows anyone to read but only the authenticated owner to write their row. See [Supabase setup](#supabase-setup-for-reference).
 
 ## How progress is stored
 
@@ -93,5 +110,22 @@ alter table public.tracker_state enable row level security;
 create policy "own row" on public.tracker_state
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 ```
+
+And the **public showcase** table (anyone can read; only the authenticated owner can write their slug):
+
+```sql
+create table if not exists public.showcase (
+  slug       text primary key,
+  user_id    uuid not null references auth.users(id),
+  data       jsonb not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.showcase enable row level security;
+create policy "showcase public read" on public.showcase for select using (true);
+create policy "showcase owner insert" on public.showcase for insert to authenticated with check (auth.uid() = user_id);
+create policy "showcase owner update" on public.showcase for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+```
+
+After creating it, sign in as the owner once and make any edit — `cloud.push()` publishes the sanitized snapshot to the `m67uzair` slug, and the public showcase goes live.
 
 The Supabase project URL and publishable key live in `app.js`. The publishable key is safe to ship in client code — row-level security is what protects the data.

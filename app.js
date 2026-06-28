@@ -821,6 +821,39 @@ async function saveStateNow() {
 const SUPABASE_URL = 'https://ymyvvjnyvztcjjqzutrv.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_u_a6gdACxLB6tyDr32FWKw_qCZG75d2';
 
+// ===== Public showcase =====
+const DEFAULT_SHOWCASE_SLUG = 'm67uzair';        // the showcase shown when no ?user= is given
+const OWNER_EMAIL = 'uzair@linkedunion.com';     // site owner — the default artifact repo auto-loads only for them
+const SHOWCASE_VERSION = 1;
+function isSiteOwner() { return !!(cloud.user && cloud.user.email === OWNER_EMAIL); }
+let currentShowcaseSlug = DEFAULT_SHOWCASE_SLUG; // the slug currently being viewed in showcase mode
+
+function sanitizeSlug(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9_-]/g, '').slice(0, 39); }
+function emailLocalPart(email) { return sanitizeSlug((email || '').split('@')[0]); }
+// The signed-in user's own showcase slug: their chosen handle, else their email local-part.
+function mySlug() {
+  const h = sanitizeSlug(state.handle);
+  if (h) return h;
+  return cloud.user ? emailLocalPart(cloud.user.email) : '';
+}
+
+// Sanitized snapshot published for anonymous read. Publishes ONLY non-private
+// fields — done bools, timing (intervals + completedAt) for the graph/hours, and
+// startedAt. Deliberately strips notes, filter, expanded, timelineCollapsed, activeTaskId.
+function publicSnapshot(s) {
+  const tasks = {};
+  for (const id in (s.tasks || {})) if (s.tasks[id]) tasks[id] = true;
+  const taskMeta = {};
+  for (const id in (s.taskMeta || {})) {
+    const m = s.taskMeta[id];
+    taskMeta[id] = {
+      intervals: (m.intervals || []).map(iv => ({ s: iv.s, e: iv.e })),
+      completedAt: m.completedAt || null
+    };
+  }
+  return { v: SHOWCASE_VERSION, tasks, taskMeta, startedAt: s.startedAt || null };
+}
+
 const cloud = {
   client: null,
   user: null,
@@ -863,6 +896,27 @@ const cloud = {
       updated_at: new Date().toISOString()
     });
     if (error) console.warn('cloud push', error);
+    // Publish the sanitized public snapshot under this user's own slug.
+    const slug = mySlug();
+    if (slug) {
+      try {
+        const { error: e2 } = await this.client.from('showcase').upsert({
+          slug, user_id: this.user.id,
+          data: publicSnapshot(state), updated_at: new Date().toISOString()
+        });
+        if (e2) console.warn('showcase push', e2);
+      } catch (e) { console.warn('showcase push', e); }
+    }
+  },
+  // Anonymous-safe public read (no auth required).
+  async pullShowcase(slug) {
+    if (!this.enabled) return null;
+    try {
+      const { data, error } = await this.client
+        .from('showcase').select('data, updated_at').eq('slug', slug).maybeSingle();
+      if (error) { console.warn('showcase pull', error); return null; }
+      return data;
+    } catch (e) { console.warn('showcase pull', e); return null; }
   }
 };
 
@@ -914,10 +968,26 @@ window.openSyncModal = async function() {
   }
   await cloud.refreshUser();
   if (cloud.user) {
-    showModal(`<h3>Cloud sync</h3><p>Signed in as <b>${cloud.user.email}</b>. Your progress syncs automatically across devices.</p><div class="modal-actions"><button onclick="syncNow()">Sync now</button><button class="danger" onclick="syncSignOut()">Sign out</button><button class="primary" onclick="hideModal()">Done</button></div>`);
+    const slug = mySlug();
+    const shareUrl = location.origin + location.pathname + '?user=' + (slug || '…');
+    showModal(`<h3>Cloud sync</h3>
+      <p>Signed in as <b>${escapeHtml(cloud.user.email)}</b>. Your progress syncs automatically across devices.</p>
+      <p style="margin-top:14px"><b>Public showcase handle</b><br><span style="font-size:12px;color:var(--text-faint)">A short handle for your shareable read-only page. Letters, numbers, - and _.</span></p>
+      <input id="syncHandle" placeholder="your-handle" value="${escapeHtml(slug)}" style="${SYNC_INPUT_STYLE}" />
+      <p style="font-size:12px;color:var(--text-faint);margin-top:8px">Your showcase: <a href="${shareUrl}" target="_blank" rel="noopener">${escapeHtml(shareUrl)}</a></p>
+      <div class="modal-actions"><button onclick="saveHandle()">Save handle</button><button onclick="syncNow()">Sync now</button><button class="danger" onclick="syncSignOut()">Sign out</button><button class="primary" onclick="hideModal()">Done</button></div>`);
   } else {
     syncEmailStep();
   }
+};
+window.saveHandle = async function() {
+  const v = sanitizeSlug(document.getElementById('syncHandle').value);
+  if (!v) { toast('Enter a handle (letters/numbers)'); return; }
+  state.handle = v;
+  await saveStateNow();
+  await cloud.push();           // publish under the new slug
+  toast('Showcase handle saved: ' + v);
+  openSyncModal();              // refresh the modal with the new share URL
 };
 function syncEmailStep() {
   showModal(`<h3>Cloud sync</h3><p>Sign in with your email to sync progress across devices — we'll email you a 6-digit code.</p><input id="syncEmail" type="email" placeholder="you@example.com" style="${SYNC_INPUT_STYLE}" /><div class="modal-actions"><button onclick="hideModal()">Cancel</button><button class="primary" onclick="syncSendCode()">Send code</button></div>`);
@@ -1274,6 +1344,15 @@ function taskActiveMs(id) {
   const now = Date.now();
   return m.intervals.reduce((t, iv) => t + ((iv.e == null ? now : iv.e) - iv.s), 0);
 }
+// Effective work time: real timed ms when the timer was used, else the task's
+// estimated hours as a fallback for done-but-never-timed tasks. Returns 0 for
+// not-done untimed tasks. Used by the time analytics (NOT by Est-Accuracy).
+function effectiveActiveMs(id) {
+  if (hasTiming(id)) return taskActiveMs(id);
+  if (!state.tasks[id]) return 0;
+  const t = getTaskObj(id);
+  return (t && typeof t.hours === 'number') ? t.hours * 3600000 : 0;
+}
 function runningTaskId() {
   if (!state.taskMeta) return null;
   for (const id in state.taskMeta) {
@@ -1297,6 +1376,7 @@ function startTask(id) {
   const last = m.intervals[m.intervals.length - 1];
   if (!last || last.e != null) m.intervals.push({ s: Date.now(), e: null });
   state.tasks[id] = false;
+  state.activeTaskId = id;     // surface this task in the sticky bar
   refreshTaskRow(id); renderActiveBar(); saveState();
 }
 function pauseTask(id) {
@@ -1306,12 +1386,14 @@ function pauseTask(id) {
   refreshTaskRow(id); renderActiveBar(); saveState();
 }
 function completeTaskTiming(id) {
-  const m = taskMetaOf(id);
-  if (m && m.intervals.length) {
+  // Always stamp completedAt — even when the timer was never started — so the
+  // task is dated for the contribution graph and the estimate-fallback metrics.
+  const m = ensureMeta(id);
+  if (m.intervals.length) {
     const last = m.intervals[m.intervals.length - 1];
     if (last.e == null) last.e = Date.now();
-    m.completedAt = Date.now();
   }
+  m.completedAt = Date.now();
 }
 function uncompleteTaskTiming(id) {
   const m = taskMetaOf(id); if (m) m.completedAt = null;
@@ -1374,17 +1456,31 @@ function refreshTaskRow(id) {
 
 function renderActiveBar() {
   const bar = document.getElementById('activeBar'); if (!bar) return;
-  const id = runningTaskId();
-  if (!id) { bar.classList.remove('show'); bar.dataset.activeId = ''; if (pipWindow) renderPiP(); return; }
-  const t = getTaskObj(id);
+  let id = state.activeTaskId;
+  // a surfaced task that got completed clears itself; the bar only auto-hides on Done
+  if (id && state.tasks[id]) { state.activeTaskId = null; id = null; }
+  if (!id) { bar.classList.remove('show', 'paused'); bar.dataset.activeId = ''; if (pipWindow) renderPiP(); return; }
+  const t = getTaskObj(id), status = taskStatus(id);
   document.getElementById('activeBarName').textContent = t ? t.text.replace(/<[^>]+>/g, '').replace(/^★\s*/, '') : id;
   document.getElementById('activeBarTime').textContent = fmtClock(taskActiveMs(id));
+  const floatBtn = pipSupported() ? '<button class="tbtn" data-act="float" title="Pop out a floating timer">⧉ Float</button>' : '';
+  const ctrl = document.getElementById('activeBarCtrl');
+  if (status === 'paused') {
+    bar.classList.add('paused');
+    document.getElementById('activeBarLbl').textContent = '⏸ PAUSED';
+    ctrl.innerHTML = floatBtn + '<button class="tbtn resume" data-act="resume">▶ Resume</button><button class="tbtn done" data-act="done">✓ Done</button><button class="ab-dismiss" data-act="dismiss" title="Dismiss — task stays paused">×</button>';
+  } else {
+    bar.classList.remove('paused');
+    document.getElementById('activeBarLbl').textContent = '▶ IN PROGRESS';
+    ctrl.innerHTML = floatBtn + '<button class="tbtn pause" data-act="pause">⏸ Pause</button><button class="tbtn done" data-act="done">✓ Done</button>';
+  }
   bar.dataset.activeId = id;
   const tb = document.querySelector('.topbar');
   bar.style.top = (tb ? tb.offsetHeight : 56) + 'px';
   bar.classList.add('show');
   if (pipWindow) renderPiP();
 }
+window.dismissActiveBar = function () { state.activeTaskId = null; saveState(); renderActiveBar(); };
 
 // ==============================================================
 // =============== FLOATING TIMER (Document PiP) ================
@@ -1467,12 +1563,16 @@ function renderAnalyticsHTML() {
     const m = taskMetaOf(t.id);
     if (m) m.intervals.forEach(iv => {
       const e = iv.e == null ? now : iv.e;
-      totalActive += e - iv.s;
       for (let d = new Date(iv.s).setHours(0, 0, 0, 0); d <= e; d += 86400000) dayset.add(new Date(d).toDateString());
     });
-    if (state.tasks[t.id] && hasTiming(t.id)) {
-      const a = taskActiveMs(t.id); actSum += a; estSum += t.hours * 3600000; cycleSum += a; cycleN++;
-    }
+    // Total + avg-cycle use effective time (estimate fallback for untimed-done tasks)
+    const eff = effectiveActiveMs(t.id);
+    totalActive += eff;
+    if (state.tasks[t.id]) { cycleSum += eff; cycleN++; }
+    // An untimed-done task still counts as an active day on its completion date
+    if (state.tasks[t.id] && !hasTiming(t.id) && m && m.completedAt) dayset.add(new Date(m.completedAt).toDateString());
+    // Est-Accuracy stays timer-only so it isn't gamed to a fake 1.0×
+    if (state.tasks[t.id] && hasTiming(t.id)) { actSum += taskActiveMs(t.id); estSum += t.hours * 3600000; }
   });
   const estAccuracy = estSum > 0 ? actSum / estSum : null;
   const avgCycle = cycleN ? cycleSum / cycleN : 0;
@@ -1505,7 +1605,8 @@ function renderAnalyticsHTML() {
     const ts = byWeek[w]; let starts = [], ends = [], done = 0, est = 0, act = 0, allDone = true;
     ts.forEach(t => {
       est += t.hours; const m = taskMetaOf(t.id);
-      if (m && m.intervals.length) { starts.push(m.intervals[0].s); act += taskActiveMs(t.id); }
+      if (m && m.intervals.length) starts.push(m.intervals[0].s);
+      act += effectiveActiveMs(t.id);   // estimate fallback for untimed-done tasks
       if (state.tasks[t.id]) { done++; if (m && m.completedAt) ends.push(m.completedAt); } else allDone = false;
     });
     return { w, total: ts.length, done, est, act,
@@ -1553,7 +1654,11 @@ function renderAnalyticsHTML() {
 
   const hint = totalActive === 0 ? `<div class="an-empty">No timing data yet — hit ▶ Start on a task and the projection, accuracy, and per-week numbers fill in automatically. Your ${doneTotal} earlier completions are counted as done but excluded from time charts.</div>` : '';
 
-  return `<h3>Analytics</h3>${hint}${kpis}${table}${chart}${analyticsDaySectionHTML()}<div class="modal-actions"><button class="primary" onclick="hideModal()">Close</button></div>`;
+  return `<h3>Analytics</h3>
+    <div class="an-tabs"><button class="an-tab active" data-tab="overview">Overview</button><button class="an-tab" data-tab="byday">By day</button></div>
+    <div class="an-panel" data-panel="overview">${hint}${kpis}${table}${chart}</div>
+    <div class="an-panel" data-panel="byday" style="display:none">${analyticsDaySectionHTML()}</div>
+    <div class="modal-actions"><button class="primary" onclick="hideModal()">Close</button></div>`;
 }
 function fmtFullDate(ts) { return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
 
@@ -1562,17 +1667,31 @@ function startOfDay(ts) { const d = new Date(ts); d.setHours(0, 0, 0, 0); return
 function toDateInput(ts) { const d = new Date(ts), p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); }
 function parseDateInput(v) { return new Date(v + 'T00:00:00').getTime(); }
 
-function activeMsByDay(fromTs, toTs) {
+// meta/tasks default to the live state, but can be passed a sanitized snapshot
+// (for the public showcase). Timed work is split across days by interval; an
+// untimed-but-done task adds its estimated hours on its completion day.
+function activeMsByDay(fromTs, toTs, meta, tasks) {
+  meta = meta || state.taskMeta || {};
+  tasks = tasks || state.tasks || {};
   const DAY = 86400000, map = {}, now = Date.now();
   for (let d = startOfDay(fromTs); d <= toTs; d += DAY) map[d] = 0;
-  for (const id in (state.taskMeta || {})) {
-    for (const iv of state.taskMeta[id].intervals) {
+  for (const id in meta) {
+    const ivs = meta[id].intervals || [];
+    for (const iv of ivs) {
       const s = iv.s, e = (iv.e == null ? now : iv.e);
       const cs = Math.max(s, fromTs), ce = Math.min(e, toTs);
       if (ce <= cs) continue;
       for (let d = startOfDay(cs); d < ce; d += DAY) {
         const os = Math.max(cs, d), oe = Math.min(ce, d + DAY);
         if (oe > os) map[d] = (map[d] || 0) + (oe - os);
+      }
+    }
+    // estimate fallback: untimed-done task contributes its estimate on completion day
+    if (tasks[id] && !ivs.length && meta[id].completedAt != null) {
+      const d = startOfDay(meta[id].completedAt);
+      if (d >= startOfDay(fromTs) && d <= toTs) {
+        const t = getTaskObj(id);
+        if (t && typeof t.hours === 'number') map[d] = (map[d] || 0) + t.hours * 3600000;
       }
     }
   }
@@ -1591,7 +1710,8 @@ function renderDayBreakdown(fromTs, toTs) {
   const bars = days.map(d => {
     const dow = new Date(d).getDay(), we = (dow === 0 || dow === 6), ms = map[d];
     const lab = new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    return `<div class="an-barwrap"><div class="an-bargrp"><div class="an-bar ${we ? 'we' : 'act'}" style="height:${Math.round(ms / maxMs * 100)}%" title="${lab}: ${fmtDur(ms)}"></div></div><div class="an-blab">${wk[dow]}</div></div>`;
+    const val = ms >= 360000 ? (ms / 3600000).toFixed(1) : '';
+    return `<div class="an-barwrap"><div class="an-bar-val">${val}</div><div class="an-bargrp"><div class="an-bar ${we ? 'we' : 'act'}" style="height:${Math.round(ms / maxMs * 100)}%" title="${lab}: ${fmtDur(ms)}"></div></div><div class="an-blab">${wk[dow]}</div></div>`;
   }).join('');
   return `<div class="an-daykpis">
       <div class="an-kpi"><div class="v">${fmtDur(wdAvg)}</div><div class="l">Avg / weekday</div></div>
@@ -1631,6 +1751,10 @@ function setupAnalyticsRange() {
   if (f) f.addEventListener('change', renderAnalyticsRange);
   if (t) t.addEventListener('change', renderAnalyticsRange);
   document.querySelectorAll('#modalBody [data-rng]').forEach(b => b.addEventListener('click', () => setAnalyticsPreset(b.dataset.rng)));
+  document.querySelectorAll('#modalBody .an-tab').forEach(tb => tb.addEventListener('click', () => {
+    document.querySelectorAll('#modalBody .an-tab').forEach(x => x.classList.toggle('active', x === tb));
+    document.querySelectorAll('#modalBody .an-panel').forEach(p => { p.style.display = (p.dataset.panel === tb.dataset.tab) ? '' : 'none'; });
+  }));
 }
 window.openAnalytics = function () { showModal(renderAnalyticsHTML(), true); setupAnalyticsRange(); };
 
@@ -2037,7 +2161,8 @@ function doReset() {
   `);
 }
 window.doResetConfirm = async function() {
-  state = { tasks: {}, taskMeta: {}, notes: {}, expanded: {}, startedAt: Date.now(), filter: 'all', timelineCollapsed: false };
+  const keepHandle = state.handle;   // preserve the public showcase handle across a progress reset
+  state = { tasks: {}, taskMeta: {}, notes: {}, expanded: {}, startedAt: Date.now(), filter: 'all', timelineCollapsed: false, activeTaskId: null, handle: keepHandle };
   await saveStateNow();
   hideModal();
   fullRender();
@@ -2085,12 +2210,42 @@ function fullRender() {
 //   -->
 //
 // name ← first "# H1" heading · desc ← first paragraph after the H1.
-const ARTIFACTS_OWNER = 'm67uzair';
-const ARTIFACTS_NAME = 'ai-pivot-practice';
-const ARTIFACTS_BRANCH = 'main';
-const ARTIFACTS_REPO = `https://github.com/${ARTIFACTS_OWNER}/${ARTIFACTS_NAME}`;
-const ARTIFACTS_CACHE_KEY = 'pivot-artifacts-cache-v1';
+// The practice repo is configurable so anyone can map their own — no auth, the
+// public GitHub API serves read-only repo listings. Precedence:
+//   ?repo=owner/name (&branch=) in the URL  →  saved choice (localStorage)  →  defaults.
+const DEFAULT_ARTIFACTS_OWNER = 'm67uzair';
+const DEFAULT_ARTIFACTS_NAME = 'ai-pivot-practice';
+const DEFAULT_ARTIFACTS_BRANCH = 'main';
+const ARTIFACTS_REPO_KEY = 'pivot-artifacts-repo';
 const ARTIFACTS_TTL = 5 * 60 * 1000; // 5 min
+
+function getArtifactsConfig() {
+  let owner = DEFAULT_ARTIFACTS_OWNER, name = DEFAULT_ARTIFACTS_NAME, branch = DEFAULT_ARTIFACTS_BRANCH;
+  const apply = (repo, br) => {
+    if (repo && repo.indexOf('/') > 0) { const [o, n] = repo.split('/'); if (o && n) { owner = o.trim(); name = n.trim(); } }
+    if (br) branch = br.trim();
+  };
+  try {
+    const saved = localStorage.getItem(ARTIFACTS_REPO_KEY);
+    if (saved) { const s = JSON.parse(saved); apply(s.owner && s.name ? s.owner + '/' + s.name : null, s.branch); }
+  } catch (e) {}
+  try {
+    const params = new URLSearchParams(location.search);
+    apply(params.get('repo'), params.get('branch'));   // URL wins
+  } catch (e) {}
+  return { owner, name, branch, repoUrl: `https://github.com/${owner}/${name}` };
+}
+function artifactsCacheKey() {
+  const c = getArtifactsConfig();
+  return `pivot-artifacts-cache-v1:${c.owner}/${c.name}@${c.branch}`;
+}
+function artifactsRepoIsExplicit() {
+  try { if (new URLSearchParams(location.search).get('repo')) return true; } catch (e) {}
+  try { if (localStorage.getItem(ARTIFACTS_REPO_KEY)) return true; } catch (e) {}
+  return false;
+}
+// Non-owners with no repo mapped get a prompt instead of the owner's default repo.
+function shouldPromptForRepo() { return !artifactsRepoIsExplicit() && !isSiteOwner(); }
 
 let ARTIFACTS = [];
 let artifactsState = 'idle'; // idle | loading | ready | error
@@ -2143,10 +2298,11 @@ function artifactSortKey(a) {
 }
 
 async function fetchArtifacts() {
+  const { owner, name, branch, repoUrl } = getArtifactsConfig();
   // Cache-buster: raw.githubusercontent.com caches files on a CDN for minutes,
   // so a freshly-pushed README can otherwise come back stale.
   const cb = `?cb=${Date.now()}`;
-  const treeUrl = `https://api.github.com/repos/${ARTIFACTS_OWNER}/${ARTIFACTS_NAME}/git/trees/${ARTIFACTS_BRANCH}${cb}`;
+  const treeUrl = `https://api.github.com/repos/${owner}/${name}/git/trees/${branch}${cb}`;
   const res = await fetch(treeUrl, { cache: 'no-store' });
   if (!res.ok) throw new Error('tree fetch failed: ' + res.status);
   const data = await res.json();
@@ -2154,11 +2310,11 @@ async function fetchArtifacts() {
     n.type === 'tree' && !n.path.startsWith('.') && !n.path.startsWith('__'));
   const found = await Promise.all(dirs.map(async d => {
     try {
-      const url = `https://raw.githubusercontent.com/${ARTIFACTS_OWNER}/${ARTIFACTS_NAME}/${ARTIFACTS_BRANCH}/${d.path}/README.md${cb}`;
+      const url = `https://raw.githubusercontent.com/${owner}/${name}/${branch}/${d.path}/README.md${cb}`;
       const r = await fetch(url, { cache: 'no-store' });
       if (!r.ok) return null; // no README → not an artifact
       const meta = parseArtifactMeta(await r.text(), d.path);
-      meta.repo = `${ARTIFACTS_REPO}/tree/${ARTIFACTS_BRANCH}/${d.path}`;
+      meta.repo = `${repoUrl}/tree/${branch}/${d.path}`;
       return meta;
     } catch (e) { return null; }
   }));
@@ -2166,7 +2322,10 @@ async function fetchArtifacts() {
 }
 
 async function loadArtifacts(force) {
-  const cachedRaw = await storage.get(ARTIFACTS_CACHE_KEY);
+  // Non-owner with no repo mapped → prompt to map one instead of loading the owner's repo.
+  if (!force && shouldPromptForRepo()) { ARTIFACTS = []; artifactsState = 'prompt'; renderArtifacts(); return; }
+  const cacheKey = artifactsCacheKey();
+  const cachedRaw = await storage.get(cacheKey);
   let cached = null;
   if (cachedRaw) { try { cached = JSON.parse(cachedRaw); } catch (e) {} }
   if (cached && Array.isArray(cached.items) && !ARTIFACTS.length) {
@@ -2180,7 +2339,7 @@ async function loadArtifacts(force) {
     const items = await fetchArtifacts();
     ARTIFACTS = items;
     artifactsState = 'ready';
-    await storage.set(ARTIFACTS_CACHE_KEY, JSON.stringify({ ts: Date.now(), items }));
+    await storage.set(cacheKey, JSON.stringify({ ts: Date.now(), items }));
   } catch (e) {
     console.warn('artifacts fetch failed', e);
     if (!ARTIFACTS.length) artifactsState = 'error';
@@ -2214,6 +2373,7 @@ function renderArtifacts() {
   if (!ARTIFACTS.length) {
     const msg = artifactsState === 'loading' ? 'Loading artifacts…'
       : artifactsState === 'error' ? "Couldn't reach GitHub — tap ↻ to retry."
+      : artifactsState === 'prompt' ? 'Map your practice repo below (owner/repo) to show your shipped projects here — each top-level folder with a README becomes a card.'
       : 'No artifacts found yet.';
     list.appendChild(el('div', { style: 'color:var(--text-faint);font-size:12px;font-family:var(--mono);padding:10px;line-height:1.5;' }, [msg]));
     return;
@@ -2258,7 +2418,27 @@ function closeArtifacts() {
   document.getElementById('artifactsPanel').setAttribute('aria-hidden', 'true');
   document.getElementById('artifactsBackdrop').classList.remove('open');
 }
+function syncArtifactsRepoUI() {
+  const c = getArtifactsConfig();
+  const link = document.getElementById('artifactsRepoLink');
+  if (link) { link.href = c.repoUrl; link.textContent = '↗ ' + c.owner + '/' + c.name; }
+  const input = document.getElementById('artifactsRepoInput');
+  if (input && document.activeElement !== input) input.value = c.owner + '/' + c.name;
+}
+function applyArtifactsRepo(raw) {
+  const v = (raw || '').trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/+$/, '');
+  if (!v || v.indexOf('/') < 1) { toast('Use owner/repo'); return; }
+  const [owner, name] = v.split('/');
+  try { localStorage.setItem(ARTIFACTS_REPO_KEY, JSON.stringify({ owner: owner.trim(), name: name.trim() })); } catch (e) {}
+  // Reflect in the URL so the mapping is shareable; clear ARTIFACTS so the new repo loads fresh.
+  try { const u = new URL(location.href); u.searchParams.set('repo', owner.trim() + '/' + name.trim()); history.replaceState(null, '', u); } catch (e) {}
+  ARTIFACTS = [];
+  syncArtifactsRepoUI();
+  toast('Mapping ' + owner.trim() + '/' + name.trim() + '…');
+  loadArtifacts(true);
+}
 function setupArtifacts() {
+  syncArtifactsRepoUI();
   renderArtifacts();
   loadArtifacts();
   document.getElementById('artifactsTab').addEventListener('click', openArtifacts);
@@ -2266,12 +2446,195 @@ function setupArtifacts() {
   document.getElementById('artifactsBackdrop').addEventListener('click', closeArtifacts);
   const refresh = document.getElementById('artifactsRefresh');
   if (refresh) refresh.addEventListener('click', () => { toast('Refreshing artifacts…'); loadArtifacts(true); });
+  const mapBtn = document.getElementById('artifactsMapBtn'), repoInput = document.getElementById('artifactsRepoInput');
+  if (mapBtn && repoInput) {
+    mapBtn.addEventListener('click', () => applyArtifactsRepo(repoInput.value));
+    repoInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyArtifactsRepo(repoInput.value); });
+  }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArtifacts(); });
 }
 
-async function boot() {
-  await loadState();
+// ==============================================================
+// =============== PUBLIC SHOWCASE ==============================
+// ==============================================================
+let SNAP = null, SNAP_UPDATED = null;
+const VIEW_PREF_KEY = 'pivot-view-pref';            // 'showcase' | 'mine'
+const SHOWCASE_CACHE_KEY = 'pivot-showcase-cache-v1';
+function getViewPref() { try { return localStorage.getItem(VIEW_PREF_KEY); } catch (e) { return null; } }
+function setViewPref(v) { try { localStorage.setItem(VIEW_PREF_KEY, v); } catch (e) {} }
+function snapDone(id) { return !!(SNAP && SNAP.tasks && SNAP.tasks[id]); }
+function weekBlockOf(phaseId, week) {
+  const p = PLAN.find(x => x.id === phaseId); if (!p) return null;
+  return p.weekBlocks.find(w => w.week === week) || null;
+}
+function timeAgo(iso) {
+  const t = typeof iso === 'number' ? iso : Date.parse(iso); if (isNaN(t)) return '';
+  const s = Math.floor((Date.now() - t) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+
+const EXTRA_SKILL_TOKENS = ['FastAPI', 'RAG', 'LangGraph', 'MCP', 'evals', 'embeddings', 'Pydantic', 'Docker', 'Kubernetes', 'Flutter', 'Django', 'agents', 'tool calling', 'prompt caching', 'structured outputs', 'reranking', 'fine-tuning', 'observability', 'Ollama', 'Groq', 'Gemini', 'SQL', 'async', 'streaming'];
+function skillsForWeek(phaseId, week) {
+  const wb = weekBlockOf(phaseId, week); if (!wb) return [];
+  const ids = wb.tasks.map(t => t.id).filter(snapDone);
+  const set = new Set();
+  ARTIFACTS.forEach(a => { if ((a.taskIds || []).some(t => ids.includes(t))) (a.stack || []).forEach(s => set.add(s)); });
+  const tokens = new Set(EXTRA_SKILL_TOKENS);
+  ARTIFACTS.forEach(a => (a.stack || []).forEach(s => tokens.add(s)));
+  const focus = (wb.focus || '').toLowerCase();
+  tokens.forEach(tok => { if (focus.includes(tok.toLowerCase())) set.add(tok); });
+  return [...set];
+}
+function snapStats() {
+  const all = allTaskIds();
+  const done = all.filter(snapDone).length;
+  let hours = 0;
+  PLAN.forEach(p => p.weekBlocks.forEach(wb => wb.tasks.forEach(t => { if (snapDone(t.id) && t.hours) hours += t.hours; })));
+  const days = SNAP && SNAP.startedAt ? Math.floor((Date.now() - SNAP.startedAt) / 86400000) : 0;
+  return { done, total: all.length, pct: all.length ? Math.round(done / all.length * 100) : 0, hours: Math.round(hours), days };
+}
+function weekHoursMs(phaseId, week) {
+  const wb = weekBlockOf(phaseId, week); if (!wb) return 0;
+  const tm = (SNAP && SNAP.taskMeta) || {};
+  return wb.tasks.filter(t => snapDone(t.id)).reduce((acc, t) => {
+    const m = tm[t.id];
+    if (m && m.intervals && m.intervals.length) return acc + m.intervals.reduce((a, iv) => a + ((iv.e == null ? Date.now() : iv.e) - iv.s), 0);
+    return acc + (typeof t.hours === 'number' ? t.hours * 3600000 : 0);
+  }, 0);
+}
+
+function showcaseHeatmapHTML() {
+  const DAY = 86400000, today = startOfDay(Date.now());
+  let gridStart = today - 363 * DAY;
+  gridStart -= new Date(gridStart).getDay() * DAY; // align to Sunday
+  const counts = {};
+  const tm = (SNAP && SNAP.taskMeta) || {};
+  for (const id in tm) { if (!snapDone(id)) continue; const ca = tm[id].completedAt; if (ca) { const d = startOfDay(ca); counts[d] = (counts[d] || 0) + 1; } }
+  const ms = activeMsByDay(gridStart, today + DAY, tm, (SNAP && SNAP.tasks) || {});
+  let cols = '';
+  for (let c = gridStart; c <= today; c += 7 * DAY) {
+    let col = '<div class="hm-col">';
+    for (let r = 0; r < 7; r++) {
+      const d = c + r * DAY;
+      if (d > today) { col += '<div class="hm-cell hm-empty"></div>'; continue; }
+      const cnt = counts[d] || 0, h = (ms[d] || 0) / 3600000;
+      let lvl = 0;
+      if (cnt > 0 || h > 0) { const score = Math.max(cnt, Math.ceil(h)); lvl = score >= 4 ? 4 : score; }
+      const lab = new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      col += `<div class="hm-cell" data-level="${lvl}" title="${lab}: ${cnt} task${cnt !== 1 ? 's' : ''}${h ? ' · ' + h.toFixed(1) + 'h' : ''}"></div>`;
+    }
+    cols += col + '</div>';
+  }
+  return `<div class="hm-grid">${cols}</div>`;
+}
+
+function renderShowcaseLoading() { const r = document.getElementById('showcaseContainer'); if (r) r.innerHTML = '<div class="sc-loading">Loading the journey…</div>'; }
+function renderShowcaseEmpty() {
+  const r = document.getElementById('showcaseContainer'); if (!r) return;
+  r.innerHTML = `<div class="sc-empty"><div class="sc-eyebrow">AI ENGINEER PIVOT</div>
+    <h1 class="sc-title">Tracker</h1>
+    <p class="sc-sub">This public showcase isn't set up yet.</p>
+    <button class="sc-startown" id="scStartOwn">Start your own →</button></div>`;
+  const so = document.getElementById('scStartOwn'); if (so) so.addEventListener('click', startYourOwn);
+}
+function renderShowcase() {
+  const root = document.getElementById('showcaseContainer'); if (!root) return;
+  if (!SNAP) { renderShowcaseEmpty(); return; }
+  const st = snapStats();
+  const cards = [];
+  PLAN.forEach(p => p.weekBlocks.forEach(wb => {
+    const ids = wb.tasks.map(t => t.id), doneIds = ids.filter(snapDone);
+    if (!doneIds.length) return;
+    const skills = skillsForWeek(p.id, wb.week);
+    cards.push(`<div class="sc-week">
+      <div class="sc-week-head"><span class="sc-wk">WK ${wb.week}</span><span class="sc-focus">${escapeHtml(wb.focus)}</span><span class="sc-count">${doneIds.length}/${ids.length}</span></div>
+      <ul class="sc-tasks">${doneIds.map(id => { const t = wb.tasks.find(x => x.id === id); return `<li>${escapeHtml(artifactStripHtml(t.text)).slice(0, 130)}</li>`; }).join('')}</ul>
+      ${skills.length ? `<div class="sc-skills">${skills.map(s => `<span>${escapeHtml(s)}</span>`).join('')}</div>` : ''}
+      <button class="sc-share" onclick="openWeekReview('${p.id}',${wb.week})">↗ Share week</button>
+    </div>`);
+  }));
+  const ownView = !!(cloud.user && mySlug() && mySlug() === currentShowcaseSlug);
+  root.innerHTML = `
+    <div class="sc-head">
+      <div><div class="sc-eyebrow">AI ENGINEER PIVOT · PUBLIC LOG</div>
+        <h1 class="sc-title">${escapeHtml(currentShowcaseSlug)}'s learnings</h1>
+        <div class="sc-sub">${SNAP_UPDATED ? 'Updated ' + timeAgo(SNAP_UPDATED) : ''}</div></div>
+      <button class="sc-startown" id="scStartOwn">${ownView ? '← Back to tracker' : 'Start your own →'}</button>
+    </div>
+    <div class="sc-stats">
+      <div class="sc-stat"><div class="v">${st.pct}%</div><div class="l">complete</div></div>
+      <div class="sc-stat"><div class="v">${st.done}/${st.total}</div><div class="l">tasks done</div></div>
+      <div class="sc-stat"><div class="v">${st.hours}</div><div class="l">hrs logged</div></div>
+      <div class="sc-stat"><div class="v">${st.days}</div><div class="l">days in</div></div>
+    </div>
+    <div class="sc-section-label">Activity</div>
+    ${showcaseHeatmapHTML()}
+    <div class="hm-legend"><span>Less</span><i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i><span>More</span></div>
+    <div class="hm-caption">Each cell is a day; intensity = tasks completed / hours that day. Completions logged before time-tracking aren't dated and are omitted.</div>
+    <div class="sc-section-label">Weekly learnings</div>
+    <div class="sc-weeks">${cards.reverse().join('') || '<div class="an-empty">No completed weeks yet.</div>'}</div>
+    <div class="sc-foot">Built with the open-source <a href="https://github.com/m67uzair/ai-pivot-tracker" target="_blank" rel="noopener">AI Pivot Tracker</a></div>`;
+  const so = document.getElementById('scStartOwn'); if (so) so.addEventListener('click', startYourOwn);
+}
+
+window.openWeekReview = function (phaseId, week) {
+  const wb = weekBlockOf(phaseId, week); if (!wb) return;
+  const ids = wb.tasks.map(t => t.id), doneIds = ids.filter(snapDone);
+  const skills = skillsForWeek(phaseId, week);
+  const hrs = weekHoursMs(phaseId, week) / 3600000;
+  const card = `<div class="wr-card">
+    <div class="wr-top">WEEK ${week} · @${escapeHtml(currentShowcaseSlug)}</div>
+    <div class="wr-focus">${escapeHtml(wb.focus)}</div>
+    <div class="wr-stats"><span>✅ ${doneIds.length}/${ids.length} tasks</span><span>⏱ ${hrs.toFixed(1)}h</span></div>
+    ${skills.length ? `<div class="wr-skills">${skills.map(s => `<span>${escapeHtml(s)}</span>`).join('')}</div>` : ''}
+    <div class="wr-foot">m67uzair.github.io/ai-pivot-tracker</div>
+  </div>`;
+  showModal(`<h3>Week ${week} — share</h3><p style="font-size:12px;color:var(--text-faint)">Screenshot this card for LinkedIn, or copy the text blurb.</p>${card}
+    <div class="modal-actions"><button onclick="copyWeekBlurb('${phaseId}',${week})">Copy blurb</button><button class="primary" onclick="hideModal()">Close</button></div>`, true);
+};
+function weekBlurb(phaseId, week) {
+  const wb = weekBlockOf(phaseId, week); const ids = wb.tasks.map(t => t.id), done = ids.filter(snapDone);
+  const skills = skillsForWeek(phaseId, week);
+  return `Week ${week} of my AI engineer pivot ✅\n${wb.focus}\nShipped ${done.length}/${ids.length} tasks`
+    + (skills.length ? `\nSkills: ${skills.join(', ')}` : '')
+    + `\nFollowing along: m67uzair.github.io/ai-pivot-tracker`;
+}
+window.copyWeekBlurb = function (phaseId, week) {
+  navigator.clipboard.writeText(weekBlurb(phaseId, week)).then(() => toast('Copied — paste into LinkedIn')).catch(() => toast('Copy failed'));
+};
+
+function startYourOwn() { setViewPref('mine'); enterInteractiveMode(); }
+window.viewShowcase = function () { enterShowcaseMode(mySlug() || DEFAULT_SHOWCASE_SLUG); };
+
+async function enterShowcaseMode(slug) {
+  currentShowcaseSlug = sanitizeSlug(slug) || DEFAULT_SHOWCASE_SLUG;
+  SNAP = null;
+  document.body.classList.add('showcase-mode');
+  const cacheKey = SHOWCASE_CACHE_KEY + ':' + currentShowcaseSlug;
+  // cache-first render, then revalidate
+  let cached = null;
+  try { const r = localStorage.getItem(cacheKey); if (r) cached = JSON.parse(r); } catch (e) {}
+  if (cached && cached.data) { SNAP = cached.data; SNAP_UPDATED = cached.updated_at; await loadArtifacts(true); renderShowcase(); }
+  else renderShowcaseLoading();
+  const row = await cloud.pullShowcase(currentShowcaseSlug);
+  if (!row || !row.data) { if (!SNAP) renderShowcaseEmpty(); return; }
+  if (!SNAP || cached == null || cached.updated_at !== row.updated_at) {
+    SNAP = row.data; SNAP_UPDATED = row.updated_at;
+    try { localStorage.setItem(cacheKey, JSON.stringify(row)); } catch (e) {}
+    await loadArtifacts(true);
+    renderShowcase();
+  }
+}
+
+let interactiveWired = false;
+function enterInteractiveMode() {
+  document.body.classList.remove('showcase-mode');
   fullRender();
+  if (interactiveWired) return;
+  interactiveWired = true;
   setupArtifacts();
 
   document.querySelectorAll('.filter-btn[data-filter]').forEach(b => {
@@ -2312,17 +2675,19 @@ async function boot() {
   document.getElementById('btnImport').addEventListener('click', doImport);
   document.getElementById('btnAnalytics').addEventListener('click', openAnalytics);
   document.getElementById('btnReset').addEventListener('click', doReset);
+  const bShow = document.getElementById('btnShowcase');
+  if (bShow) bShow.addEventListener('click', viewShowcase);
 
-  // Active-task bar controls
-  document.getElementById('activeBarPause').addEventListener('click', () => {
-    const id = document.getElementById('activeBar').dataset.activeId; if (id) pauseTask(id);
+  // Active-task bar controls (delegated; buttons vary by running/paused state)
+  document.getElementById('activeBarCtrl').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-act]'); if (!b) return;
+    const id = document.getElementById('activeBar').dataset.activeId, act = b.dataset.act;
+    if (act === 'float') openTimerPiP();
+    else if (act === 'pause' && id) pauseTask(id);
+    else if (act === 'resume' && id) startTask(id);
+    else if (act === 'done' && id) toggleTask(id);
+    else if (act === 'dismiss') dismissActiveBar();
   });
-  document.getElementById('activeBarDone').addEventListener('click', () => {
-    const id = document.getElementById('activeBar').dataset.activeId; if (id) toggleTask(id);
-  });
-  const floatBtn = document.getElementById('activeBarFloat');
-  if (pipSupported()) floatBtn.addEventListener('click', openTimerPiP);
-  else floatBtn.style.display = 'none';
   // Live timer tick (display-only, not persisted)
   setInterval(() => {
     const id = runningTaskId(); if (!id) return;
@@ -2333,7 +2698,6 @@ async function boot() {
     updatePiPTime();
   }, 1000);
 
-  cloud.init();
   updateSyncUI();
   cloudSyncOnLoad();
   let focusSyncTimer = null;
@@ -2344,6 +2708,24 @@ async function boot() {
   });
 
   setInterval(updateOverallUI, 60000);
+}
+
+async function boot() {
+  cloud.init();
+  await loadState();
+  await cloud.refreshUser();
+  let viewUser = '';
+  try { viewUser = sanitizeSlug(new URLSearchParams(location.search).get('user')); } catch (e) {}
+  if (viewUser) {
+    // Anyone's showcase, by handle — ?user=someone
+    await enterShowcaseMode(viewUser);
+  } else if (cloud.user || getViewPref() === 'mine') {
+    // Signed-in users (and visitors who chose "Start your own") get the interactive tracker
+    enterInteractiveMode();
+  } else {
+    // Default anonymous landing: the site owner's public showcase
+    await enterShowcaseMode(DEFAULT_SHOWCASE_SLUG);
+  }
 }
 
 boot();
