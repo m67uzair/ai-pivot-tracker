@@ -800,7 +800,9 @@ async function loadState() {
 }
 
 let saveTimer = null;
+let READONLY = false;  // showcase mode renders the real tracker from a snapshot, read-only
 async function saveState() {
+  if (READONLY) return;
   state.updatedAt = Date.now();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
@@ -809,6 +811,7 @@ async function saveState() {
   cloudPushDebounced();
 }
 async function saveStateNow() {
+  if (READONLY) return;
   state.updatedAt = Date.now();
   clearTimeout(saveTimer);
   await storage.set(STORAGE_KEY, JSON.stringify(state));
@@ -1371,6 +1374,7 @@ function pauseRunning(except) {
   }
 }
 function startTask(id) {
+  if (READONLY) return;
   pauseRunning(id);            // only one task runs at a time
   const m = ensureMeta(id);
   const last = m.intervals[m.intervals.length - 1];
@@ -1380,6 +1384,7 @@ function startTask(id) {
   refreshTaskRow(id); renderActiveBar(); saveState();
 }
 function pauseTask(id) {
+  if (READONLY) return;
   const m = taskMetaOf(id); if (!m || !m.intervals.length) return;
   const last = m.intervals[m.intervals.length - 1];
   if (last.e == null) last.e = Date.now();
@@ -1879,6 +1884,9 @@ function renderPhase(phase) {
     head.appendChild(el('div', { class: 'week-focus' }, [wb.focus]));
     const ws = weekBadgeState(phase.id, wb.week);
     head.appendChild(el('span', { class: 'week-status' + (ws.complete ? ' done' : ''), 'data-week-status': wkKey }, [ws.text]));
+    const share = el('button', { class: 'week-share', title: 'Share this week on LinkedIn' }, ['↗']);
+    share.addEventListener('click', (ev) => { ev.stopPropagation(); openWeekReview(phase.id, wb.week); });
+    head.appendChild(share);
     head.addEventListener('click', () => {
       const open = wbEl.classList.toggle('open');
       state.weekExpanded = state.weekExpanded || {};
@@ -2035,6 +2043,7 @@ function findTrackIdForTask(taskId) {
 }
 
 function toggleTask(taskId, taskEl) {
+  if (READONLY) return;
   const newVal = !state.tasks[taskId];
   state.tasks[taskId] = newVal;
   if (newVal) completeTaskTiming(taskId); else uncompleteTaskTiming(taskId);
@@ -2462,11 +2471,6 @@ const VIEW_PREF_KEY = 'pivot-view-pref';            // 'showcase' | 'mine'
 const SHOWCASE_CACHE_KEY = 'pivot-showcase-cache-v1';
 function getViewPref() { try { return localStorage.getItem(VIEW_PREF_KEY); } catch (e) { return null; } }
 function setViewPref(v) { try { localStorage.setItem(VIEW_PREF_KEY, v); } catch (e) {} }
-function snapDone(id) { return !!(SNAP && SNAP.tasks && SNAP.tasks[id]); }
-function weekBlockOf(phaseId, week) {
-  const p = PLAN.find(x => x.id === phaseId); if (!p) return null;
-  return p.weekBlocks.find(w => w.week === week) || null;
-}
 function timeAgo(iso) {
   const t = typeof iso === 'number' ? iso : Date.parse(iso); if (isNaN(t)) return '';
   const s = Math.floor((Date.now() - t) / 1000);
@@ -2476,162 +2480,115 @@ function timeAgo(iso) {
   return Math.floor(s / 86400) + 'd ago';
 }
 
-const EXTRA_SKILL_TOKENS = ['FastAPI', 'RAG', 'LangGraph', 'MCP', 'evals', 'embeddings', 'Pydantic', 'Docker', 'Kubernetes', 'Flutter', 'Django', 'agents', 'tool calling', 'prompt caching', 'structured outputs', 'reranking', 'fine-tuning', 'observability', 'Ollama', 'Groq', 'Gemini', 'SQL', 'async', 'streaming'];
+// ===== Share a week on LinkedIn — reads the live `state`, reuses effectiveActiveMs + showModal =====
+const WEEK_SKILL_TOKENS = ['FastAPI', 'RAG', 'LangGraph', 'MCP', 'evals', 'embeddings', 'Pydantic', 'Docker', 'Kubernetes', 'Flutter', 'Django', 'agents', 'tool calling', 'prompt caching', 'structured outputs', 'reranking', 'fine-tuning', 'observability', 'Ollama', 'Groq', 'Gemini', 'SQL', 'async', 'streaming'];
+function weekBlockOf(phaseId, week) {
+  const p = PLAN.find(x => x.id === phaseId); if (!p) return null;
+  return p.weekBlocks.find(w => w.week === week) || null;
+}
 function skillsForWeek(phaseId, week) {
   const wb = weekBlockOf(phaseId, week); if (!wb) return [];
-  const ids = wb.tasks.map(t => t.id).filter(snapDone);
+  const ids = wb.tasks.map(t => t.id).filter(id => state.tasks[id]);
   const set = new Set();
   ARTIFACTS.forEach(a => { if ((a.taskIds || []).some(t => ids.includes(t))) (a.stack || []).forEach(s => set.add(s)); });
-  const tokens = new Set(EXTRA_SKILL_TOKENS);
-  ARTIFACTS.forEach(a => (a.stack || []).forEach(s => tokens.add(s)));
+  const tokens = new Set(WEEK_SKILL_TOKENS); ARTIFACTS.forEach(a => (a.stack || []).forEach(s => tokens.add(s)));
   const focus = (wb.focus || '').toLowerCase();
   tokens.forEach(tok => { if (focus.includes(tok.toLowerCase())) set.add(tok); });
   return [...set];
 }
-function snapStats() {
-  const all = allTaskIds();
-  const done = all.filter(snapDone).length;
-  let hours = 0;
-  PLAN.forEach(p => p.weekBlocks.forEach(wb => wb.tasks.forEach(t => { if (snapDone(t.id) && t.hours) hours += t.hours; })));
-  const days = SNAP && SNAP.startedAt ? Math.floor((Date.now() - SNAP.startedAt) / 86400000) : 0;
-  return { done, total: all.length, pct: all.length ? Math.round(done / all.length * 100) : 0, hours: Math.round(hours), days };
-}
-function weekHoursMs(phaseId, week) {
-  const wb = weekBlockOf(phaseId, week); if (!wb) return 0;
-  const tm = (SNAP && SNAP.taskMeta) || {};
-  return wb.tasks.filter(t => snapDone(t.id)).reduce((acc, t) => {
-    const m = tm[t.id];
-    if (m && m.intervals && m.intervals.length) return acc + m.intervals.reduce((a, iv) => a + ((iv.e == null ? Date.now() : iv.e) - iv.s), 0);
-    return acc + (typeof t.hours === 'number' ? t.hours * 3600000 : 0);
-  }, 0);
-}
-
-function showcaseHeatmapHTML() {
-  const DAY = 86400000, today = startOfDay(Date.now());
-  let gridStart = today - 363 * DAY;
-  gridStart -= new Date(gridStart).getDay() * DAY; // align to Sunday
-  const counts = {};
-  const tm = (SNAP && SNAP.taskMeta) || {};
-  for (const id in tm) { if (!snapDone(id)) continue; const ca = tm[id].completedAt; if (ca) { const d = startOfDay(ca); counts[d] = (counts[d] || 0) + 1; } }
-  const ms = activeMsByDay(gridStart, today + DAY, tm, (SNAP && SNAP.tasks) || {});
-  let cols = '';
-  for (let c = gridStart; c <= today; c += 7 * DAY) {
-    let col = '<div class="hm-col">';
-    for (let r = 0; r < 7; r++) {
-      const d = c + r * DAY;
-      if (d > today) { col += '<div class="hm-cell hm-empty"></div>'; continue; }
-      const cnt = counts[d] || 0, h = (ms[d] || 0) / 3600000;
-      let lvl = 0;
-      if (cnt > 0 || h > 0) { const score = Math.max(cnt, Math.ceil(h)); lvl = score >= 4 ? 4 : score; }
-      const lab = new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-      col += `<div class="hm-cell" data-level="${lvl}" title="${lab}: ${cnt} task${cnt !== 1 ? 's' : ''}${h ? ' · ' + h.toFixed(1) + 'h' : ''}"></div>`;
-    }
-    cols += col + '</div>';
-  }
-  return `<div class="hm-grid">${cols}</div>`;
-}
-
-function renderShowcaseLoading() { const r = document.getElementById('showcaseContainer'); if (r) r.innerHTML = '<div class="sc-loading">Loading the journey…</div>'; }
-function renderShowcaseEmpty() {
-  const r = document.getElementById('showcaseContainer'); if (!r) return;
-  r.innerHTML = `<div class="sc-empty"><div class="sc-eyebrow">AI ENGINEER PIVOT</div>
-    <h1 class="sc-title">Tracker</h1>
-    <p class="sc-sub">This public showcase isn't set up yet.</p>
-    <button class="sc-startown" id="scStartOwn">Start your own →</button></div>`;
-  const so = document.getElementById('scStartOwn'); if (so) so.addEventListener('click', startYourOwn);
-}
-function renderShowcase() {
-  const root = document.getElementById('showcaseContainer'); if (!root) return;
-  if (!SNAP) { renderShowcaseEmpty(); return; }
-  const st = snapStats();
-  const cards = [];
-  PLAN.forEach(p => p.weekBlocks.forEach(wb => {
-    const ids = wb.tasks.map(t => t.id), doneIds = ids.filter(snapDone);
-    if (!doneIds.length) return;
-    const skills = skillsForWeek(p.id, wb.week);
-    cards.push(`<div class="sc-week">
-      <div class="sc-week-head"><span class="sc-wk">WK ${wb.week}</span><span class="sc-focus">${escapeHtml(wb.focus)}</span><span class="sc-count">${doneIds.length}/${ids.length}</span></div>
-      <ul class="sc-tasks">${doneIds.map(id => { const t = wb.tasks.find(x => x.id === id); return `<li>${escapeHtml(artifactStripHtml(t.text)).slice(0, 130)}</li>`; }).join('')}</ul>
-      ${skills.length ? `<div class="sc-skills">${skills.map(s => `<span>${escapeHtml(s)}</span>`).join('')}</div>` : ''}
-      <button class="sc-share" onclick="openWeekReview('${p.id}',${wb.week})">↗ Share week</button>
-    </div>`);
-  }));
-  const ownView = !!(cloud.user && mySlug() && mySlug() === currentShowcaseSlug);
-  root.innerHTML = `
-    <div class="sc-head">
-      <div><div class="sc-eyebrow">AI ENGINEER PIVOT · PUBLIC LOG</div>
-        <h1 class="sc-title">${escapeHtml(currentShowcaseSlug)}'s learnings</h1>
-        <div class="sc-sub">${SNAP_UPDATED ? 'Updated ' + timeAgo(SNAP_UPDATED) : ''}</div></div>
-      <button class="sc-startown" id="scStartOwn">${ownView ? '← Back to tracker' : 'Start your own →'}</button>
-    </div>
-    <div class="sc-stats">
-      <div class="sc-stat"><div class="v">${st.pct}%</div><div class="l">complete</div></div>
-      <div class="sc-stat"><div class="v">${st.done}/${st.total}</div><div class="l">tasks done</div></div>
-      <div class="sc-stat"><div class="v">${st.hours}</div><div class="l">hrs logged</div></div>
-      <div class="sc-stat"><div class="v">${st.days}</div><div class="l">days in</div></div>
-    </div>
-    <div class="sc-section-label">Activity</div>
-    ${showcaseHeatmapHTML()}
-    <div class="hm-legend"><span>Less</span><i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i><span>More</span></div>
-    <div class="hm-caption">Each cell is a day; intensity = tasks completed / hours that day. Completions logged before time-tracking aren't dated and are omitted.</div>
-    <div class="sc-section-label">Weekly learnings</div>
-    <div class="sc-weeks">${cards.reverse().join('') || '<div class="an-empty">No completed weeks yet.</div>'}</div>
-    <div class="sc-foot">Built with the open-source <a href="https://github.com/m67uzair/ai-pivot-tracker" target="_blank" rel="noopener">AI Pivot Tracker</a></div>`;
-  const so = document.getElementById('scStartOwn'); if (so) so.addEventListener('click', startYourOwn);
-}
-
 window.openWeekReview = function (phaseId, week) {
   const wb = weekBlockOf(phaseId, week); if (!wb) return;
-  const ids = wb.tasks.map(t => t.id), doneIds = ids.filter(snapDone);
+  const ids = wb.tasks.map(t => t.id), done = ids.filter(id => state.tasks[id]);
+  if (!done.length) { toast('No completed tasks in Week ' + week + ' yet'); return; }
   const skills = skillsForWeek(phaseId, week);
-  const hrs = weekHoursMs(phaseId, week) / 3600000;
+  const hrs = done.reduce((a, id) => a + effectiveActiveMs(id), 0) / 3600000;   // reuse the timing helper
+  const who = READONLY ? currentShowcaseSlug : (mySlug() || 'me');
   const card = `<div class="wr-card">
-    <div class="wr-top">WEEK ${week} · @${escapeHtml(currentShowcaseSlug)}</div>
+    <div class="wr-top">WEEK ${week} · @${escapeHtml(who)}</div>
     <div class="wr-focus">${escapeHtml(wb.focus)}</div>
-    <div class="wr-stats"><span>✅ ${doneIds.length}/${ids.length} tasks</span><span>⏱ ${hrs.toFixed(1)}h</span></div>
+    <div class="wr-stats"><span>✅ ${done.length}/${ids.length} tasks</span><span>⏱ ${hrs.toFixed(1)}h</span></div>
     ${skills.length ? `<div class="wr-skills">${skills.map(s => `<span>${escapeHtml(s)}</span>`).join('')}</div>` : ''}
-    <div class="wr-foot">m67uzair.github.io/ai-pivot-tracker</div>
-  </div>`;
-  showModal(`<h3>Week ${week} — share</h3><p style="font-size:12px;color:var(--text-faint)">Screenshot this card for LinkedIn, or copy the text blurb.</p>${card}
+    <div class="wr-foot">m67uzair.github.io/ai-pivot-tracker</div></div>`;
+  showModal(`<h3>Week ${week} — share</h3><p style="font-size:12px;color:var(--text-faint)">Screenshot the card for LinkedIn, or copy the text blurb.</p>${card}
     <div class="modal-actions"><button onclick="copyWeekBlurb('${phaseId}',${week})">Copy blurb</button><button class="primary" onclick="hideModal()">Close</button></div>`, true);
 };
 function weekBlurb(phaseId, week) {
-  const wb = weekBlockOf(phaseId, week); const ids = wb.tasks.map(t => t.id), done = ids.filter(snapDone);
+  const wb = weekBlockOf(phaseId, week); const ids = wb.tasks.map(t => t.id), done = ids.filter(id => state.tasks[id]);
   const skills = skillsForWeek(phaseId, week);
-  return `Week ${week} of my AI engineer pivot ✅\n${wb.focus}\nShipped ${done.length}/${ids.length} tasks`
-    + (skills.length ? `\nSkills: ${skills.join(', ')}` : '')
-    + `\nFollowing along: m67uzair.github.io/ai-pivot-tracker`;
+  const lead = READONLY ? `Week ${week} of @${currentShowcaseSlug}'s AI engineer pivot 👀` : `Week ${week} of my AI engineer pivot ✅`;
+  return `${lead}\n${wb.focus}\nShipped ${done.length}/${ids.length} tasks`
+    + (skills.length ? `\nSkills: ${skills.join(', ')}` : '') + `\nFollowing along: m67uzair.github.io/ai-pivot-tracker`;
 }
 window.copyWeekBlurb = function (phaseId, week) {
   navigator.clipboard.writeText(weekBlurb(phaseId, week)).then(() => toast('Copied — paste into LinkedIn')).catch(() => toast('Copy failed'));
 };
 
-function startYourOwn() { setViewPref('mine'); enterInteractiveMode(); }
-window.viewShowcase = function () { enterShowcaseMode(mySlug() || DEFAULT_SHOWCASE_SLUG); };
+// The showcase IS the real tracker page, rendered read-only from a public snapshot.
+function applySnapshotToState(snap) {
+  state = {
+    tasks: Object.assign({}, snap.tasks || {}),
+    taskMeta: JSON.parse(JSON.stringify(snap.taskMeta || {})),
+    notes: {}, expanded: {}, weekExpanded: {},
+    startedAt: snap.startedAt || Date.now(),
+    filter: 'all', timelineCollapsed: false, activeTaskId: null
+  };
+}
+function showRoMessage(text, withBtn) {
+  document.body.classList.add('sc-message');
+  const r = document.getElementById('showcaseContainer'); if (!r) return;
+  r.innerHTML = `<div class="sc-msg"><div class="sc-eyebrow">AI ENGINEER PIVOT</div><p>${escapeHtml(text)}</p>${withBtn ? '<button class="ro-btn" id="roStart2">Start your own →</button>' : ''}</div>`;
+  const b = document.getElementById('roStart2'); if (b) b.addEventListener('click', startYourOwn);
+}
+function clearRoMessage() {
+  document.body.classList.remove('sc-message');
+  const r = document.getElementById('showcaseContainer'); if (r) r.innerHTML = '';
+}
+function renderRoBanner(slug) {
+  const bar = document.getElementById('roBanner'); if (!bar) return;
+  const label = cloud.user ? 'Back to my tracker' : 'Start your own →';
+  bar.innerHTML = `<span class="ro-eye">👁 <b>${escapeHtml(slug)}</b>'s tracker · read-only${SNAP_UPDATED ? ' · updated ' + timeAgo(SNAP_UPDATED) : ''}</span><span class="ro-sp"></span><button class="ro-btn" id="roStart">${label}</button>`;
+  bar.classList.add('show');
+  const b = document.getElementById('roStart'); if (b) b.addEventListener('click', startYourOwn);
+}
+function renderReadonly() {
+  clearRoMessage();
+  applySnapshotToState(SNAP);
+  fullRender();
+  renderRoBanner(currentShowcaseSlug);
+  loadArtifacts(true);
+}
+
+// Exit read-only: reload so the visitor's own (localStorage) state is restored cleanly.
+function startYourOwn() { setViewPref('mine'); location.reload(); }
+// Preview your own (or anyone's) showcase in a new tab — never clobbers the live session.
+window.viewShowcase = function () {
+  const slug = mySlug() || DEFAULT_SHOWCASE_SLUG;
+  window.open(location.pathname + '?user=' + encodeURIComponent(slug), '_blank');
+};
 
 async function enterShowcaseMode(slug) {
   currentShowcaseSlug = sanitizeSlug(slug) || DEFAULT_SHOWCASE_SLUG;
-  SNAP = null;
-  document.body.classList.add('showcase-mode');
+  READONLY = true;
+  document.body.classList.add('readonly');
   const cacheKey = SHOWCASE_CACHE_KEY + ':' + currentShowcaseSlug;
-  // cache-first render, then revalidate
   let cached = null;
   try { const r = localStorage.getItem(cacheKey); if (r) cached = JSON.parse(r); } catch (e) {}
-  if (cached && cached.data) { SNAP = cached.data; SNAP_UPDATED = cached.updated_at; await loadArtifacts(true); renderShowcase(); }
-  else renderShowcaseLoading();
+  if (cached && cached.data) { SNAP = cached.data; SNAP_UPDATED = cached.updated_at; renderReadonly(); }
+  else showRoMessage('Loading ' + currentShowcaseSlug + "'s tracker…");
   const row = await cloud.pullShowcase(currentShowcaseSlug);
-  if (!row || !row.data) { if (!SNAP) renderShowcaseEmpty(); return; }
+  if (!row || !row.data) { if (!SNAP) showRoMessage("This public tracker isn't set up yet.", true); return; }
   if (!SNAP || cached == null || cached.updated_at !== row.updated_at) {
     SNAP = row.data; SNAP_UPDATED = row.updated_at;
     try { localStorage.setItem(cacheKey, JSON.stringify(row)); } catch (e) {}
-    await loadArtifacts(true);
-    renderShowcase();
+    renderReadonly();
   }
 }
 
 let interactiveWired = false;
 function enterInteractiveMode() {
-  document.body.classList.remove('showcase-mode');
+  READONLY = false;
+  document.body.classList.remove('readonly', 'sc-message');
+  const rb = document.getElementById('roBanner'); if (rb) rb.classList.remove('show');
   fullRender();
   if (interactiveWired) return;
   interactiveWired = true;

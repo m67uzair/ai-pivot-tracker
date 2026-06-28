@@ -69,9 +69,11 @@ The choice persists in `localStorage` and the panel re-fetches that repo's folde
 
 ## Public showcase
 
-Anonymous visitors land on a **read-only showcase** — overall stats, a GitHub-style contribution graph, and weekly cards (with auto-derived skills) — and can hit **Start your own** to switch to the interactive tracker (their own `localStorage`). Signed-in users go straight to their interactive tracker and can preview their own showcase via the **👁 Showcase** button.
+Anonymous visitors land on the **real tracker page rendered read-only** (a thin banner on top, no editing controls) — same UI as the live tracker, populated from a published snapshot. They can hit **Start your own** to switch to the interactive tracker (their own `localStorage`). Signed-in users go straight to their interactive tracker and can preview their showcase in a new tab via the **👁 Showcase** button.
 
 **Anyone can publish their own showcase** (not just the site owner). Set a handle in the **☁ Sync** modal; your progress is then published — sanitized — under that handle, shareable at `?user=<handle>`. The default landing (no `?user=`) shows the site owner's showcase.
+
+Each week in the interactive tracker has a **↗ share** button that opens a screenshot-ready "Week in review" card + a copy-paste blurb for LinkedIn.
 
 Served **live** from a public-readable Supabase `showcase` table: on every cloud sync, the signed-in user publishes a **sanitized** snapshot (done tasks + timing/dates + start date only — **never notes**) under their own slug. RLS allows anyone to read but only the authenticated owner to write their row. See [Supabase setup](#supabase-setup-for-reference).
 

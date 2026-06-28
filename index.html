@@ -1173,62 +1173,45 @@
   .an-tab { font-family: var(--mono); font-size: 12px; padding: 6px 12px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-faint); cursor: pointer; }
   .an-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
   .an-bar-val { font-family: var(--mono); font-size: 9px; color: var(--text-dim); height: 12px; line-height: 12px; }
-  /* ===== PUBLIC SHOWCASE ===== */
+  /* ===== READ-ONLY SHOWCASE ===== */
+  /* Read-only banner sits atop the real tracker page */
+  .ro-banner {
+    display: none; position: sticky; top: 0; z-index: 70;
+    align-items: center; gap: 10px; padding: 9px 16px;
+    background: linear-gradient(90deg, var(--accent-soft), rgba(15,17,21,0.95));
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--accent); font-family: var(--mono); font-size: 12px;
+  }
+  body.readonly .ro-banner { display: flex; }
+  .ro-banner .ro-eye { color: var(--text-dim); }
+  .ro-banner .ro-eye b { color: var(--accent); }
+  .ro-banner .ro-sp { flex: 1; }
+  .ro-btn { flex-shrink: 0; background: var(--accent); color: var(--bg); border: none; font-weight: 700; font-family: var(--mono); font-size: 12px; padding: 7px 13px; border-radius: 7px; cursor: pointer; }
+  .ro-btn:hover { filter: brightness(1.08); }
+  /* In read-only mode, hide the topbar (the banner replaces it) + all editing affordances */
+  body.readonly .topbar,
+  body.readonly .bottom-bar,
+  body.readonly .active-bar,
+  body.readonly .task-ctrl,
+  body.readonly .notes-wrap,
+  body.readonly .week-block .notes-wrap { display: none !important; }
+  body.readonly .task { cursor: default; }
+  body.readonly .checkbox { cursor: default; }
+  body.readonly .target-date-btn { pointer-events: none; text-decoration: none; }
+  body.readonly .phases section:has(.notes), body.readonly .section-label.notes-label { display: none; }
+  /* Full-page message (loading / not-set-up) */
   #showcaseContainer { display: none; }
-  body.showcase-mode #showcaseContainer { display: block; max-width: 880px; margin: 0 auto; padding: 24px 16px 80px; }
-  body.showcase-mode .topbar,
-  body.showcase-mode .hero,
-  body.showcase-mode .timeline-section,
-  body.showcase-mode .filters,
-  body.showcase-mode #phasesContainer,
-  body.showcase-mode #tracksContainer,
-  body.showcase-mode .bottom-bar,
-  body.showcase-mode .active-bar,
-  body.showcase-mode .artifacts-tab { display: none !important; }
-  .sc-loading, .sc-empty { padding: 60px 16px; text-align: center; color: var(--text-dim); }
-  .sc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
-  .sc-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em; color: var(--text-faint); text-transform: uppercase; }
-  .sc-title { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; margin: 6px 0 4px; }
-  .sc-sub { color: var(--text-faint); font-family: var(--mono); font-size: 12px; }
-  .sc-startown { flex-shrink: 0; background: var(--accent); color: var(--bg); border: none; font-weight: 700; font-size: 13px; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
-  .sc-startown:hover { filter: brightness(1.08); }
-  .sc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 24px; }
-  .sc-stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 8px; text-align: center; }
-  .sc-stat .v { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent); }
-  .sc-stat .l { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
-  .sc-section-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-faint); text-transform: uppercase; margin: 26px 0 12px; }
-  /* heatmap */
-  .hm-grid { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 4px; }
-  .hm-col { display: flex; flex-direction: column; gap: 3px; }
-  .hm-cell { width: 12px; height: 12px; border-radius: 2px; background: var(--bg-soft); }
-  .hm-cell.hm-empty { background: transparent; }
-  .hm-cell[data-level="1"] { background: rgba(52,211,153,0.30); }
-  .hm-cell[data-level="2"] { background: rgba(52,211,153,0.55); }
-  .hm-cell[data-level="3"] { background: rgba(52,211,153,0.78); }
-  .hm-cell[data-level="4"] { background: var(--green); }
-  .hm-legend { display: flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 10px; color: var(--text-faint); margin-top: 8px; }
-  .hm-legend i { width: 12px; height: 12px; border-radius: 2px; background: var(--bg-soft); display: inline-block; }
-  .hm-legend i[data-level="1"] { background: rgba(52,211,153,0.30); }
-  .hm-legend i[data-level="2"] { background: rgba(52,211,153,0.55); }
-  .hm-legend i[data-level="3"] { background: rgba(52,211,153,0.78); }
-  .hm-legend i[data-level="4"] { background: var(--green); }
-  .hm-caption { font-size: 11px; color: var(--text-faint); margin-top: 8px; line-height: 1.5; }
-  /* weekly cards */
-  .sc-weeks { display: flex; flex-direction: column; gap: 12px; }
-  .sc-week { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-  .sc-week-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
-  .sc-wk { font-family: var(--mono); font-size: 11px; color: var(--accent); background: var(--accent-soft); padding: 2px 7px; border-radius: 4px; font-weight: 700; }
-  .sc-focus { font-size: 14px; font-weight: 700; }
-  .sc-count { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--green); }
-  .sc-tasks { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-  .sc-tasks li { font-size: 13px; color: var(--text-dim); padding-left: 16px; position: relative; line-height: 1.4; }
-  .sc-tasks li::before { content: "✓"; color: var(--green); position: absolute; left: 0; }
-  .sc-skills { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
-  .sc-skills span { font-family: var(--mono); font-size: 10px; color: var(--text-faint); background: var(--bg-soft); border: 1px solid var(--border-soft); padding: 2px 7px; border-radius: 999px; }
-  .sc-share { background: var(--bg-soft); border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 11px; padding: 5px 10px; border-radius: 6px; cursor: pointer; }
-  .sc-share:hover { color: var(--accent); border-color: var(--accent); }
-  .sc-foot { margin-top: 26px; font-family: var(--mono); font-size: 11px; color: var(--text-faint); text-align: center; }
-  /* week-in-review card */
+  body.sc-message #showcaseContainer { display: block; }
+  body.sc-message .topbar, body.sc-message .ro-banner, body.sc-message .hero,
+  body.sc-message .timeline-section, body.sc-message .filters,
+  body.sc-message #phasesContainer, body.sc-message #tracksContainer,
+  body.sc-message .bottom-bar, body.sc-message .artifacts-tab { display: none !important; }
+  .sc-msg { padding: 80px 16px; text-align: center; color: var(--text-dim); max-width: 520px; margin: 0 auto; }
+  .sc-msg .sc-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em; color: var(--text-faint); text-transform: uppercase; margin-bottom: 12px; }
+  .sc-msg p { font-size: 15px; margin-bottom: 18px; }
+  /* per-week LinkedIn share */
+  .week-share { background: none; border: none; color: var(--text-faint); font-family: var(--mono); font-size: 13px; cursor: pointer; padding: 2px 6px; border-radius: 6px; flex-shrink: 0; }
+  .week-share:hover { color: var(--accent); background: var(--bg-soft); }
   .wr-card { background: linear-gradient(150deg, #161922, #0f1115); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 12px 0; }
   .wr-top { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; }
   .wr-focus { font-size: 18px; font-weight: 800; margin: 6px 0 12px; line-height: 1.25; }
@@ -1240,7 +1223,8 @@
 </head>
 <body>
 
-<!-- ===== PUBLIC SHOWCASE (read-only; shown in showcase-mode) ===== -->
+<!-- ===== READ-ONLY SHOWCASE banner + full-page message host ===== -->
+<div class="ro-banner" id="roBanner"></div>
 <div id="showcaseContainer"></div>
 
 <!-- ===== ARTIFACTS SIDEBAR ===== -->
