@@ -2503,10 +2503,16 @@ window.openWeekReview = function (phaseId, week) {
   const skills = skillsForWeek(phaseId, week);
   const hrs = done.reduce((a, id) => a + effectiveActiveMs(id), 0) / 3600000;   // reuse the timing helper
   const who = READONLY ? currentShowcaseSlug : (mySlug() || 'me');
+  const taskLi = done.map(id => {
+    const t = wb.tasks.find(x => x.id === id); let txt = artifactStripHtml(t.text);
+    if (txt.length > 96) txt = txt.slice(0, 94) + '…';
+    return `<li>${escapeHtml(txt)}</li>`;
+  }).join('');
   const card = `<div class="wr-card">
     <div class="wr-top">WEEK ${week} · @${escapeHtml(who)}</div>
     <div class="wr-focus">${escapeHtml(wb.focus)}</div>
     <div class="wr-stats"><span>✅ ${done.length}/${ids.length} tasks</span><span>⏱ ${hrs.toFixed(1)}h</span></div>
+    <ul class="wr-tasks">${taskLi}</ul>
     ${skills.length ? `<div class="wr-skills">${skills.map(s => `<span>${escapeHtml(s)}</span>`).join('')}</div>` : ''}
     <div class="wr-foot">m67uzair.github.io/ai-pivot-tracker</div></div>`;
   showModal(`<h3>Week ${week} — share</h3><p style="font-size:12px;color:var(--text-faint)">Screenshot the card for LinkedIn, or copy the text blurb.</p>${card}
@@ -2516,8 +2522,9 @@ function weekBlurb(phaseId, week) {
   const wb = weekBlockOf(phaseId, week); const ids = wb.tasks.map(t => t.id), done = ids.filter(id => state.tasks[id]);
   const skills = skillsForWeek(phaseId, week);
   const lead = READONLY ? `Week ${week} of @${currentShowcaseSlug}'s AI engineer pivot 👀` : `Week ${week} of my AI engineer pivot ✅`;
-  return `${lead}\n${wb.focus}\nShipped ${done.length}/${ids.length} tasks`
-    + (skills.length ? `\nSkills: ${skills.join(', ')}` : '') + `\nFollowing along: m67uzair.github.io/ai-pivot-tracker`;
+  const items = done.map(id => '✅ ' + artifactStripHtml(wb.tasks.find(t => t.id === id).text)).join('\n');
+  return `${lead}\n${wb.focus}\n\n${items}`
+    + (skills.length ? `\n\nSkills: ${skills.join(', ')}` : '') + `\n\nFollowing along: m67uzair.github.io/ai-pivot-tracker`;
 }
 window.copyWeekBlurb = function (phaseId, week) {
   navigator.clipboard.writeText(weekBlurb(phaseId, week)).then(() => toast('Copied — paste into LinkedIn')).catch(() => toast('Copy failed'));
